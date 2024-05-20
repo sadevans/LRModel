@@ -86,9 +86,11 @@ class VideoTransform:
             self.video_pipeline = torch.nn.Sequential(
                 FunctionalModule(lambda x: x / 255.0),
                 torchvision.transforms.RandomCrop(88),
-                # torchvision.transforms.Grayscale(),
-                AdaptiveTimeMask(10, 25),
+                torchvision.transforms.Grayscale(),
+                # AdaptiveTimeMask(10, 25),
                 torchvision.transforms.Normalize(0.421, 0.165),
+                # torchvision.transforms.Normalize(),
+
             )
         elif subset == "val" or subset == "test":
             self.video_pipeline = torch.nn.Sequential(

@@ -25,11 +25,16 @@ from torch.utils.data import DataLoader
 
 def pad(samples, pad_val=0.0):
     lengths = [len(s) for s in samples]
+    # print('LENGTHS: ', lengths)
     max_size = max(lengths)
+    # print(max_size)
+    # print('MAX SIZE : ', max_size)
+    if pad_val == -1:
+        print('HERE: ', samples, len(samples), samples[0].shape)
     sample_shape = list(samples[0].shape[1:])
     collated_batch = samples[0].new_zeros([len(samples), max_size] + sample_shape)
     for i, sample in enumerate(samples):
-        print('LEN SAMPLE: ', len(sample))
+        # print('LEN SAMPLE: ', len(sample))
         diff = len(sample) - max_size
         if diff == 0:
             collated_batch[i] = sample
@@ -49,13 +54,18 @@ def pad(samples, pad_val=0.0):
 def collate_pad(batch):
     batch_out = {}
     for data_type in batch[0].keys():
-        # pad_val = -1 if data_type == "txtx" else 0.0
-        pad_val = 0
+        # print(data_type)
+        pad_val = -1 if data_type == "txt" else 0.0
+        # pad_val = 0
+        # print(pad_val)
         c_batch, sample_lengths = pad(
             [s[data_type] for s in batch if s[data_type] is not None], pad_val
         )
+        # print('SAMPLE LENGTHS: ', torch.tensor(sample_lengths), torch.tensor(np.array(sample_lengths)))
         batch_out[data_type] = c_batch
-        batch_out[data_type + "_len"] = torch.tensor(sample_lengths)
+        batch_out[data_type + "_len"] = torch.tensor(np.array(sample_lengths))
+
+    # print('BATCH: ', batch_out)
     return batch_out
 
 
@@ -74,7 +84,7 @@ class DataModule:
         self.test_file = test_file
         self.label_dir = label_dir
 
-        self.batch_size = 100
+        self.batch_size = 4
         self.total_gpus =  torch.cuda.device_count()
 
 

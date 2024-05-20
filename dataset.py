@@ -10,9 +10,9 @@ import editdistance
 
 
 class MyDataset:
-    letters = [' ', 'а', 'б', 'в', 'г', 'д', 'е', 'ж', 'з', 'и', 'й', 'к', 'л', 'м', 'н', 'о', 'п', 'р', 'с', 'т', \
-               'у', 'ф', 'ц', 'х', 'ш', 'ц', 'ч', 'ш', 'щ', 'ъ', 'ы', 'ь', 'э', 'ю', 'я']
-
+    # letters = [' ', 'а', 'б', 'в', 'г', 'д', 'е', 'ж', 'з', 'и', 'й', 'к', 'л', 'м', 'н', 'о', 'п', 'р', 'с', 'т', \
+    #            'у', 'ф', 'ц', 'х', 'ш', 'ц', 'ч', 'ш', 'щ', 'ъ', 'ы', 'ь', 'э', 'ю', 'я']
+    letters = [char for char in ' абвгдежзийклмнопрстуфхцчшщъыьэюя']
     def __init__(self, root_dir,label_path,subset,modality,audio_transform=None,
                  video_transform=None,rate_ratio=640,):
         self.root = root_dir
@@ -27,7 +27,7 @@ class MyDataset:
         # self.txt_pad = 200
 
 
-        self.list_files = self.load_list(label_path)
+        self.list_files = self.load_list(label_path)[:100]
         # self.load_list(label_path)
         # print(self.list_files)
 
@@ -54,6 +54,8 @@ class MyDataset:
     def load_anno(self, name):
         with open(name, 'r') as f:
             line = f.readlines()[0].replace('-', ' ')
+            # if 'и так получилось что я там и оставался жить' in line:
+            #     print(line, name)
             line = re.sub(r'[^0-9а-яА-Я ]', '', line)
             line = line.strip().split(' ')
             for i, char in enumerate(line):
@@ -65,11 +67,13 @@ class MyDataset:
 
     def load_video(self,path):
         vid = torchvision.io.read_video(path, pts_unit="sec", output_format="THWC")[0]
-        print('VIDEO SHAPE: ', vid.shape)
-        print('NEEDED SHAPE: ', vid.permute(3, 0, 1, 2).shape)
+        # if 'CLzUU8N8sJQ_28753' in path:
+            # print('BROKEN VIDEO: ', vid.shape)
+        # print('VIDEO SHAPE: ', vid.shape)
+        # print('NEEDED SHAPE: ', vid.permute(3, 0, 1, 2).shape)
         vid = vid.permute((0, 3, 1, 2))
         # vid = vid.permute(3, 0, 1, 2)
-        print('PERMUTED SHAPE: ', vid.shape)
+        # print('PERMUTED SHAPE: ', vid.shape)
         
 
         return vid
@@ -85,9 +89,10 @@ class MyDataset:
         if self.modality == "video":
             video = self.load_video(path)
             video = self.video_transform(video)
+            # video = (video - video.mean()) / video.std()
             # video = video.permute(3, 0, 1, 2)
 
-            print('SHAPE AFTER TRANSFORM: ', video.shape)
+            # print('SHAPE AFTER TRANSFORM: ', video.shape)
             # video = video.permute(1,0,2,3)
             # print('CHECK SHAPE: ', video.shape)
 
@@ -147,6 +152,10 @@ class MyDataset:
     @staticmethod
     def arr2txt(arr, start):
         txt = []
+        # print(arr.detach().cpu().numpy(), type(arr.detach().cpu().numpy()))
+        # arr = [t[t != -1] for t in arr]
+        arr = arr[arr != -1]
+        # print(arr)
         for n in arr:
             if(n >= start):
                 txt.append(MyDataset.letters[n - start])     

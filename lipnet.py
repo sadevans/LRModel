@@ -6,10 +6,10 @@ import math
 import numpy as np
 
 
-class LipNet(torch.nn.Module):
+class MyModel(torch.nn.Module):
     def __init__(self, dropout_p=0.5):
-        super(LipNet, self).__init__()
-        self.conv1 = nn.Conv3d(3, 32, (3, 5, 5), (1, 2, 2), (1, 2, 2))
+        super(MyModel, self).__init__()
+        self.conv1 = nn.Conv3d(1, 32, (3, 5, 5), (1, 2, 2), (1, 2, 2))
         self.pool1 = nn.MaxPool3d((1, 2, 2), (1, 2, 2))
         
         self.conv2 = nn.Conv3d(32, 64, (3, 5, 5), (1, 1, 1), (1, 2, 2))
@@ -18,7 +18,7 @@ class LipNet(torch.nn.Module):
         self.conv3 = nn.Conv3d(64, 96, (3, 3, 3), (1, 1, 1), (1, 1, 1))     
         self.pool3 = nn.MaxPool3d((1, 2, 2), (1, 2, 2))
         
-        self.gru1  = nn.GRU(96*4*8, 256, 1, bidirectional=True)
+        self.gru1  = nn.GRU(96*5*5, 256, 1, bidirectional=True)
         self.gru2  = nn.GRU(512, 256, 1, bidirectional=True)
         
         self.FC    = nn.Linear(512, 33+1)
@@ -27,7 +27,8 @@ class LipNet(torch.nn.Module):
         self.relu = nn.ReLU(inplace=True)
         self.dropout = nn.Dropout(self.dropout_p)        
         self.dropout3d = nn.Dropout3d(self.dropout_p)  
-        self._init()
+        # self._init()
+
     
     def _init(self):
         
@@ -57,18 +58,21 @@ class LipNet(torch.nn.Module):
         
         
     def forward(self, x):
-        print('INPUT IN MODEL SHAPE: ', x.shape)
+        # print('IN THE INPUT MODEL: ', x)
+        # print('INPUT IN MODEL SHAPE: ', x.shape)
         x = self.conv1(x)
-        print('SHAPE AFTER FIRST 3D CONV: ', x.shape)
+        # print('AFTER FIST CONV: ', x)
+        print('CONV1 WEIGHTS: ', self.conv1.weight)
+        # print('SHAPE AFTER FIRST 3D CONV: ', x.shape)
         x = self.relu(x)
-        print(x)
-        print('SHAPE AFTER RELU: ', x.shape)
+        # print(x)
+        # print('SHAPE AFTER RELU: ', x.shape)
 
         x = self.dropout3d(x)
-        print('SHAPE AFTER DROPOUT: ', x.shape)
+        # print('SHAPE AFTER DROPOUT: ', x.shape)
 
         x = self.pool1(x)
-        print('SHAPE AFTER POOL: ', x.shape)
+        # print('SHAPE AFTER POOL: ', x.shape)
 
         
         x = self.conv2(x)
@@ -82,10 +86,15 @@ class LipNet(torch.nn.Module):
         x = self.pool3(x)
         
         # (B, C, T, H, W)->(T, B, C, H, W)
+        # print('SHAPE BEFORE PERMUTE: ', x.shape)
+        # print('FTER CONV BEFORE PERMUTE: ', x)
         x = x.permute(2, 0, 1, 3, 4).contiguous()
+        # print('SHAPE AFTER PERMUTE: ', x.shape)
+
         # (B, C, T, H, W)->(T, B, C*H*W)
         x = x.view(x.size(0), x.size(1), -1)
-        
+        # print('SHAPE BEFORE GRU: ', x.shape)
+        # print('BEFORE GRU ', x)
         self.gru1.flatten_parameters()
         self.gru2.flatten_parameters()
         
@@ -93,10 +102,12 @@ class LipNet(torch.nn.Module):
         x = self.dropout(x)
         x, h = self.gru2(x)   
         x = self.dropout(x)
-                
+        # print('AFTER GRU: ', x)        
         x = self.FC(x)
+        # print('AFTER FC: ', x)
         x = x.permute(1, 0, 2).contiguous()
-        print('SHPAE AFTER LIPNET: ', x.shape)
+        # print('SHPAE AFTER MyModel: ', x.shape)
+        # print('AFTER MyModel: ', x)
         return x
         
     
