@@ -51,7 +51,7 @@ class Swish(nn.Module):
 
 class Conv3D(nn.Module):
     """Convolution 3D block"""
-    def __init__(self, in_channels, out_channels, kernel=(3, 5, 5), loss_type='relu', if_maxpool=False) -> None:
+    def __init__(self, in_channels=1, out_channels=24, kernel=(3, 5, 5), loss_type='relu', if_maxpool=False) -> None:
         super(Conv3D).__init__()
         self.if_maxpool = if_maxpool
         if loss_type == "relu":
@@ -60,16 +60,17 @@ class Conv3D(nn.Module):
             self.act = Swish()
 
         self.conv3d = nn.Conv3d(in_channels, out_channels, kernel, (1, 2, 2), (1, 2, 2)),
-        self.bn = nn.BatchNorm3d(self.frontend_nout),
+        self.bn = nn.BatchNorm3d(out_channels),
 
         if self.if_maxpool:
             self.maxpool = nn.MaxPool3d((1, 3, 3), (1, 2, 2), (0, 1, 1))
 
 
     def forward(self, x):
+        
         x = x.transpose(1, 2)  # [B, T, C, H, W] -> [B, C, T, H, W]
 
-        B, C, T, H, W = x.size()
+        # B, C, T, H, W = x.size()
         x = self.conv3d(x)
         x = self.bn(x)
         x = self.act(x)

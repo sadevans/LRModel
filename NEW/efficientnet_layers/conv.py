@@ -1,31 +1,30 @@
 import torch.nn as nn
 
 
-class ConvBnA(nn.Module):
-    def __init__(self, in_channels: int, out_channels: int, use_bn: bool = True, **kwargs: dict,):
-        super(ConvBnA, self).__init__()
-
-        momentum = kwargs.pop('momentum', 0.1)
-        eps = kwargs.pop('eps', 1e-5)
-        self.activation = kwargs.pop('activation', nn.ReLU(inplace=True))
-        self.stride = kwargs.get('stride', 1)
-        self.out_channels = out_channels
-
-        self.conv = nn.Conv2d(
-            in_channels=in_channels, out_channels=out_channels, **kwargs
-        )
-        self.bn = (
-            nn.BatchNorm2d(
-                num_features=out_channels, momentum=momentum, eps=eps
-            )
-            if use_bn
-            else None
+class PointwiseConvolution(nn.Module):
+    """Pointwise-Convolution-BatchNormalization-Activation Module"""
+    def __init__(self, in_channels, out_channels, norm_layer, act):
+        super(PointwiseConvolution, self).__init__(
+        nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1, padding=0, groups=1, bias=False),
+        norm_layer(out_channels),
+        act()
         )
 
-    def forward(self, inp):
-        x = self.conv(inp)
-        if self.bn is not None:
-            x = self.bn(x)
-        if self.activation is not None:
-            x = self.activation(x)
-        return x
+class DepthwiseConv(nn.Module):
+    """Depthwise-Convolution-BatchNormalization-Activation Module"""
+    def __init__(self, in_channels, out_channels, kernel_size, stride, groups, norm_layer, act):
+        super(DepthwiseConv, self).__init__(
+            nn.Conv2d(in_channels, out_channels, kernel_size, stride=stride, padding=(kernel_size-1)//2, groups=groups, bias=False),
+            norm_layer(out_channels),
+            act()
+        )
+
+
+class ConvBnAct(nn.Module):
+    """Convolution-BatchNormalization-Activation Module"""
+    def __init__(self, in_channel, out_channel, kernel_size, stride, groups, norm_layer, act, conv_layer=nn.Conv2d):
+        super(ConvBnAct, self).__init__(
+            conv_layer(in_channel, out_channel, kernel_size, stride=stride, padding=(kernel_size-1)//2, groups=groups, bias=False),
+            norm_layer(out_channel),
+            act()
+        )
