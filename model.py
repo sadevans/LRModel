@@ -36,7 +36,7 @@ class Model(nn.Module):
         # self.permute = nn.Permute(0, 2, 1, 3, 4)
         self.flatten = nn.Flatten(2, -1)
 
-        self.lstm1 = nn.LSTM(input_size=9075, hidden_size=256, num_layers=1, batch_first=True, bidirectional=True)
+        self.lstm1 = nn.LSTM(input_size=9075, hidden_size=256, num_layers=2, batch_first=True, bidirectional=True)
         self.lstm2 = nn.LSTM(input_size=512, hidden_size=256, num_layers=1, batch_first=True, bidirectional=True)
 
         self.linear = nn.Linear(512, vocab_size)
@@ -73,6 +73,8 @@ class Model(nn.Module):
         # print('X SHAPE: ', x.shape)
         x, _ = self.lstm1(x)
         x, _ = self.lstm2(x)
+
+        # x, _ = nn.utils.rnn.pad_packed_sequence(x, batch_first=True)
 
         x = self.linear(x)
 

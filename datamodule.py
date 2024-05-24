@@ -24,15 +24,21 @@ from torch.utils.data import DataLoader
 
 
 def pad(samples, pad_val=0.0):
-    lengths = [len(s) for s in samples]
+    lengths = [s.shape[0] for s in samples]
     # print('LENGTHS: ', lengths)
+    # print('LENGTHS: ', [s.shape[0] for s in samples])
+    
     max_size = max(lengths)
-    # print(max_size)
     # print('MAX SIZE : ', max_size)
-    if pad_val == -1:
-        print('HERE: ', samples, len(samples), samples[0].shape)
+    # if pad_val == -1:
+    #     print('HERE: ', samples, len(samples), samples[0].shape, samples[0].shape[1:])
+
+    # else:
+    #     print("VID SHAPE ", len(samples), samples[0].shape, samples[0].shape[1:])
+
     sample_shape = list(samples[0].shape[1:])
     collated_batch = samples[0].new_zeros([len(samples), max_size] + sample_shape)
+
     for i, sample in enumerate(samples):
         # print('LEN SAMPLE: ', len(sample))
         diff = len(sample) - max_size
@@ -42,22 +48,23 @@ def pad(samples, pad_val=0.0):
             collated_batch[i] = torch.cat(
                 [sample, sample.new_full([-diff] + sample_shape, pad_val)]
             )
-    if len(samples[0].shape) == 1:
-        collated_batch = collated_batch.unsqueeze(1)  # targets
-    elif len(samples[0].shape) == 2:
-        pass  # collated_batch: [B, T, 1]s
-    elif len(samples[0].shape) == 4:
-        pass  # collated_batch: [B, T, C, H, W]
+    # if len(samples[0].shape) == 1:
+    #     print('IN TXT COLLATED PAD: ',  collated_batch.shape)
+        # collated_batch = collated_batch.unsqueeze(1)  # targets
+        # print('IN TXT COLLATED PAD AFTER: ',  collated_batch.shape)
+
+    # elif len(samples[0].shape) == 2:
+    #     pass  # collated_batch: [B, T, 1]s
+    # elif len(samples[0].shape) == 4:
+    #     pass  # collated_batch: [B, T, C, H, W]
     return collated_batch, lengths
 
 
 def collate_pad(batch):
     batch_out = {}
     for data_type in batch[0].keys():
-        # print(data_type)
-        pad_val = -1 if data_type == "txt" else 0.0
-        # pad_val = 0
-        # print(pad_val)
+        # pad_val = -1 if data_type == "txt" else 0.0
+        pad_val = 0
         c_batch, sample_lengths = pad(
             [s[data_type] for s in batch if s[data_type] is not None], pad_val
         )
@@ -71,8 +78,9 @@ def collate_pad(batch):
 
 class DataModule:
     def __init__(self, modality, root_dir, train_file, val_file, test_file, label_dir='labels'):
-        self.letters = [' ', 'а', 'б', 'в', 'г', 'д', 'е', 'ж', 'з', 'и', 'й', 'к', 'л', 'м', 'н', 'о', 'п', 'р', 'с', 'т', \
-               'у', 'ф', 'ц', 'х', 'ш', 'ц', 'ч', 'ш', 'щ', 'ъ', 'ы', 'ь', 'э', 'ю', 'я']
+        # self.letters = [' ', 'а', 'б', 'в', 'г', 'д', 'е', 'ж', 'з', 'и', 'й', 'к', 'л', 'м', 'н', 'о', 'п', 'р', 'с', 'т', \
+        #        'у', 'ф', 'ц', 'х', 'ш', 'ц', 'ч', 'ш', 'щ', 'ъ', 'ы', 'ь', 'э', 'ю', 'я']
+        self.letters = [char for char in ' абвгдежзийклмнопрстуфхцчшщъыьэюя']
         # self.crg = cfg
         # self.cfg.gpus = torch.cuda.device_count()
         # self.total_gpus = self.cfg.gpus * self.cfg.trainer.num_nodes

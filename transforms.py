@@ -88,7 +88,7 @@ class VideoTransform:
                 torchvision.transforms.RandomCrop(88),
                 torchvision.transforms.Grayscale(),
                 # AdaptiveTimeMask(10, 25),
-                torchvision.transforms.Normalize(0.421, 0.165),
+                # torchvision.transforms.Normalize(0.421, 0.165),
                 # torchvision.transforms.Normalize(),
 
             )
@@ -97,7 +97,7 @@ class VideoTransform:
                 FunctionalModule(lambda x: x / 255.0),
                 torchvision.transforms.CenterCrop(88),
                 torchvision.transforms.Grayscale(),
-                torchvision.transforms.Normalize(0.421, 0.165),
+                # torchvision.transforms.Normalize(0.421, 0.165),
             )
 
     def __call__(self, sample):
