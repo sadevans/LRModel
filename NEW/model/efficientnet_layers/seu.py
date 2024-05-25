@@ -8,7 +8,7 @@ class SqueezeExcite(nn.Module):
     paper: https://openaccess.thecvf.com/content_cvpr_2018/html/Hu_Squeeze-and-Excitation_Networks_CVPR_2018_paper
 
     """
-    def __init__(self, in_channel, reduction_ratio=4, act1=partial(nn.SiLU, inplace=True), act2=nn.Sigmoid):
+    def __init__(self, in_channel, reduction_ratio=24, act1=partial(nn.SiLU, inplace=True), act2=nn.Sigmoid):
         super(SqueezeExcite, self).__init__()
         reduced_channels = in_channel // reduction_ratio
         self.avg_pool = nn.AdaptiveAvgPool2d((1, 1))

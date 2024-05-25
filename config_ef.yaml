@@ -1,0 +1,34 @@
+frontend-3d:
+  # [in, out, kernel, loss type, max pool]
+  - [1, 24, [3, 5, 5], 'relu', False]
+
+
+efficient-net-blocks:
+  B:
+    # [r, k, s, in, out,   n,   se,  fused]
+    - [1, 3, 1, 24,  24,   1,  False, True]
+    - [4, 3, 2, 24,  32,   2,  False, True]
+    - [4, 3, 2, 32,  48,   2,  False, True]
+    - [4, 3, 2, 48,  96,   3,  True, False]
+    - [6, 3, 1, 96, 112,  5,  True, False]
+    - [6, 3, 2, 112, 192,  8,  True, False]
+    # Conv1×1→Pooling→GLU
+
+  T:
+    # [r, k, s, in, out,   n,   se,  fused]
+    - [1, 3, 1, 8,   8,    1,  False, True]
+    - [4, 3, 2, 8,   16,   2,  False, True]
+    - [4, 3, 2, 16,  32,   2,  False, True]
+    - [4, 3, 2, 32,  56,   3,  True, False]
+    - [6, 3, 1, 56,  64,   5,  True, False]
+    - [6, 3, 2, 64, 112,   8,  True, False]
+    # Conv1×1→Pooling→GLU
+
+  S:
+    # [r, k, s, in, out,   n,   se,  fused]
+    - [1, 3, 1, 24, 24, 2, False, True]
+    - [4, 3, 2, 24, 48, 4, False, True]
+    - [4, 3, 2, 48, 64, 4, False, True]
+    - [4, 3, 2, 64, 128, 6, True, False]
+    - [6, 3, 1, 128, 160, 9, True, False]
+    - [6, 3, 2, 160, 256, 15, True, False]

@@ -5,8 +5,8 @@ from collections import OrderedDict
 import torch
 from torch import nn
 
-from seu import SqueezeExcite
-from conv import PointwiseConvolution, DepthwiseConv, ConvBnAct
+from .seu import SqueezeExcite
+from .conv import PointwiseConvolution, DepthwiseConv, ConvBnAct
 
 
 class StochasticDepth(nn.Module):
@@ -47,6 +47,8 @@ class MBConvConfig:
         self.use_se = use_se
         self.fused = fused
 
+        print(expand_ratio, kernel, stride, in_ch, out_ch, layers,use_se, fused)
+
     @staticmethod
     def adjust_channels(channel, factor, divisible=8):
         new_channel = channel * factor
@@ -65,34 +67,57 @@ class MBConv(nn.Module):
     """
     def __init__(self, c, sd_prob=0.0):
         super(MBConv, self).__init__()
-        inter_channel = c.adjust_channels(c.in_ch, c.expand_ratio)
+        print(c.in_ch, c.expand_ratio)
+        self.inter_channel = c.adjust_channels(c.in_ch, c.expand_ratio)
+        print("INTER CHANNELS: ", self.inter_channel)
+
         block = []
 
-        if c.expand_ratio == 1:
-            block.append(('fused', ConvBnAct(c.in_ch, inter_channel, c.kernel, c.stride, 1, c.norm_layer, c.act)))
-        elif c.fused:
-            block.append(('fused', ConvBnAct(c.in_ch, inter_channel, c.kernel, c.stride, 1, c.norm_layer, c.act)))
+        print("IN MBCONV DEFINING LAYERS")
+
+        # if c.expand_ratio == 1:
+        #     print('here')
+        #     block.append(('fused', ConvBnAct(c.in_ch, inter_channel, c.kernel, c.stride, 1, c.norm_layer, c.act)))
+        # elif c.fused:
+        if c.fused:
+            print('FUSED')
+            print("IN, INTER, OUT: ", c.in_ch, self.inter_channel, c.out_ch)
+
+            print(c.in_ch, self.inter_channel, c.kernel, c.stride, 1, c.norm_layer, c.act)
+            block.append(('fused', ConvBnAct(c.in_ch, self.inter_channel, c.kernel, c.stride, 1, c.norm_layer, c.act)))
             # block.append(('fused_point_wise', ConvBnAct(inter_channel, c.out_ch, 1, 1, 1, c.norm_layer, nn.Identity)))
-            block.append(('fused_point_wise', PointwiseConvolution(inter_channel, c.out_ch, c.norm_layer, nn.Identity)))
+            block.append(('fused_point_wise', PointwiseConvolution(self.inter_channel, c.out_ch, c.norm_layer, nn.Identity)))
 
         else:
-            # block.append(('linear_bottleneck', ConvBnAct(c.in_ch, inter_channel, 1, 1, 1, c.norm_layer, c.act)))
-            block.append(('point_wise', PointwiseConvolution(inter_channel, c.out_ch, c.norm_layer, c.act)))
+            print('MBCONV ')
+            print("IN, INTER, OUT: ", c.in_ch, self.inter_channel, c.out_ch)
+
+            # block.append(('linear_bottleneck', ConvBnAct(c.in_ch, self.inter_channel, 1, 1, 1, c.norm_layer, c.act)))
+            block.append(('linear_bottleneck', PointwiseConvolution(c.in_ch, self.inter_channel, c.norm_layer, c.act)))
 
             # block.append(('depth_wise', ConvBnAct(inter_channel, inter_channel, c.kernel, c.stride, inter_channel, c.norm_layer, c.act)))
-            block.append(('depth_wise', DepthwiseConv(inter_channel, inter_channel, c.kernel, c.stride, inter_channel, c.norm_layer, c.act)))
+            block.append(('depth_wise', DepthwiseConv(self.inter_channel, self.inter_channel, c.kernel, c.stride, self.inter_channel, c.norm_layer, c.act)))
 
-            block.append(('se', SqueezeExcite(inter_channel, 4 * c.expand_ratio)))
+            block.append(('se', SqueezeExcite(self.inter_channel, 4 * c.expand_ratio)))
             # block.append(('point_wise', ConvBnAct(inter_channel, c.out_ch, 1, 1, 1, c.norm_layer, nn.Identity)))
-            block.append(('point_wise', PointwiseConvolution(inter_channel, c.out_ch, c.norm_layer, nn.Identity)))
+            block.append(('point_wise', PointwiseConvolution(self.inter_channel, c.out_ch, c.norm_layer, nn.Identity)))
 
         self.block = nn.Sequential(OrderedDict(block))
         self.use_skip_connection = c.stride == 1 and c.in_ch == c.out_ch
         self.stochastic_path = StochasticDepth(sd_prob, "row")
 
     def forward(self, x):
-        out = self.block(x)
+        # out = self.block(x)
+        # out = x.clone()
+        inp = x.clone()
+        for bl in self.block:
+            print("IN BLOCK: ", x.shape, self.inter_channel)
+            # print(bl)
+            x = bl(x)
+            
         if self.use_skip_connection:
             # out = x + self.stochastic_path(out)
-            out = x + out
-        return out
+            print("IN SKIP CONNECTION: ", x.shape, inp.shape)
+            x = inp + x
+        print("OUT BLOCK: ", x.shape)
+        return x
