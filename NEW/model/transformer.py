@@ -27,7 +27,7 @@ class TransformerEncoder(nn.Module):
         x = self.norm1(x)
 
         x2 = self.linear2(self.relu(self.linear1(x)))
-        print(x2.shape, x.shape)
+        #print(x2.shape, x.shape)
         x = x + self.dropout2(x2)  # Add & Norm after residual connection here
         x = self.norm2(x)
 

@@ -58,21 +58,21 @@ class MyModel(torch.nn.Module):
         
         
     def forward(self, x):
-        # print('IN THE INPUT MODEL: ', x)
-        # print('INPUT IN MODEL SHAPE: ', x.shape)
+        # #print('IN THE INPUT MODEL: ', x)
+        # #print('INPUT IN MODEL SHAPE: ', x.shape)
         x = self.conv1(x)
-        # print('AFTER FIST CONV: ', x)
-        print('CONV1 WEIGHTS: ', self.conv1.weight)
-        # print('SHAPE AFTER FIRST 3D CONV: ', x.shape)
+        # #print('AFTER FIST CONV: ', x)
+        #print('CONV1 WEIGHTS: ', self.conv1.weight)
+        # #print('SHAPE AFTER FIRST 3D CONV: ', x.shape)
         x = self.relu(x)
-        # print(x)
-        # print('SHAPE AFTER RELU: ', x.shape)
+        # #print(x)
+        # #print('SHAPE AFTER RELU: ', x.shape)
 
         x = self.dropout3d(x)
-        # print('SHAPE AFTER DROPOUT: ', x.shape)
+        # #print('SHAPE AFTER DROPOUT: ', x.shape)
 
         x = self.pool1(x)
-        # print('SHAPE AFTER POOL: ', x.shape)
+        # #print('SHAPE AFTER POOL: ', x.shape)
 
         
         x = self.conv2(x)
@@ -86,15 +86,15 @@ class MyModel(torch.nn.Module):
         x = self.pool3(x)
         
         # (B, C, T, H, W)->(T, B, C, H, W)
-        # print('SHAPE BEFORE PERMUTE: ', x.shape)
-        # print('FTER CONV BEFORE PERMUTE: ', x)
+        # #print('SHAPE BEFORE PERMUTE: ', x.shape)
+        # #print('FTER CONV BEFORE PERMUTE: ', x)
         x = x.permute(2, 0, 1, 3, 4).contiguous()
-        # print('SHAPE AFTER PERMUTE: ', x.shape)
+        # #print('SHAPE AFTER PERMUTE: ', x.shape)
 
         # (B, C, T, H, W)->(T, B, C*H*W)
         x = x.view(x.size(0), x.size(1), -1)
-        # print('SHAPE BEFORE GRU: ', x.shape)
-        # print('BEFORE GRU ', x)
+        # #print('SHAPE BEFORE GRU: ', x.shape)
+        # #print('BEFORE GRU ', x)
         self.gru1.flatten_parameters()
         self.gru2.flatten_parameters()
         
@@ -102,12 +102,12 @@ class MyModel(torch.nn.Module):
         x = self.dropout(x)
         x, h = self.gru2(x)   
         x = self.dropout(x)
-        # print('AFTER GRU: ', x)        
+        # #print('AFTER GRU: ', x)        
         x = self.FC(x)
-        # print('AFTER FC: ', x)
+        # #print('AFTER FC: ', x)
         x = x.permute(1, 0, 2).contiguous()
-        # print('SHPAE AFTER MyModel: ', x.shape)
-        # print('AFTER MyModel: ', x)
+        # #print('SHPAE AFTER MyModel: ', x.shape)
+        # #print('AFTER MyModel: ', x)
         return x
         
     

@@ -1,12 +1,12 @@
 import torch
 import torch.nn as nn
 from collections import OrderedDict
-from efficientnet_layers.mbconv import MBConv, MBConvConfig
-from efficientnet_layers.conv import ConvBnAct
+from .efficientnet_layers.mbconv import MBConv, MBConvConfig
+from .efficientnet_layers.conv import ConvBnAct
 
-from efficientnet_layers.seu import SqueezeExcite
+from .efficientnet_layers.seu import SqueezeExcite
 
-from frontend import Conv3D
+from .frontend import Conv3D
 import copy
 import yaml
 
@@ -52,18 +52,18 @@ class EfficientNetV2(nn.Module):
         ]))
 
     def make_stages(self, layer_infos, block):
-        print("IN MAKING STAGES")
+        #print("IN MAKING STAGES")
         return [layer for layer_info in layer_infos for layer in self.make_layers(copy.copy(layer_info), block)]
 
     def make_layers(self, layer_info, block):
         layers = []
-        # print("layer innfo: ", layer_info)
-        print("layers num: ", layer_info.num_layers)
+        # #print("layer innfo: ", layer_info)
+        #print("layers num: ", layer_info.num_layers)
         for i in range(layer_info.num_layers):
-            print("layer info: ", layer_info.in_ch, layer_info.out_ch, layer_info.num_layers)
+            #print("layer info: ", layer_info.in_ch, layer_info.out_ch, layer_info.num_layers)
             layers.append(block(layer_info, sd_prob=self.get_sd_prob()))
             layer_info.in_ch = layer_info.out_ch
-            print("layer info after: ", layer_info.in_ch, layer_info.out_ch)
+            #print("layer info after: ", layer_info.in_ch, layer_info.out_ch)
 
             # layer_info.stride = 1
         return layers
@@ -78,13 +78,13 @@ class EfficientNetV2(nn.Module):
 
         :param x: torch.Tensor, input tensor with input size (B, C, T, H, W).
         """
-        print("INPUT SHAPE IN EFFICIENT NET V2: ", x.shape)
-        # print(self.blocks[0])
+        #print("INPUT SHAPE IN EFFICIENT NET V2: ", x.shape)
+        # #print(self.blocks[0])
         # return self.blocks(x)
         for i, block in enumerate(self.blocks):
-            print(f"NOW IN BLOCK {i}: ", block)
+            #print(f"NOW IN BLOCK {i}: ", block)
             x = block(x)
-            print(f"SHAPE AFTER BLOCK {i}: ", x.shape)
+            #print(f"SHAPE AFTER BLOCK {i}: ", x.shape)
 
         x = self.stage_7(x)
 
@@ -94,19 +94,19 @@ class EfficientNetV2(nn.Module):
 
 
 def efficientnet_v2_init(model):
-    print("IN INIT")
+    #print("IN INIT")
     for m in model.modules():
         if isinstance(m, nn.Conv2d):
-            # print("CONV")
+            # #print("CONV")
             nn.init.kaiming_normal_(m.weight, mode='fan_out')
             if m.bias is not None:
                 nn.init.zeros_(m.bias)
         elif isinstance(m, (nn.BatchNorm2d, nn.GroupNorm)):
-            # print("BN")
+            # #print("BN")
             nn.init.ones_(m.weight)
             nn.init.zeros_(m.bias)
         elif isinstance(m, nn.Linear):
-            # print("LINEAR")
+            # #print("LINEAR")
 
             nn.init.normal_(m.weight, mean=0.0, std=0.01)
             nn.init.zeros_(m.bias)
@@ -127,11 +127,11 @@ def get_efficientnet_v2(config, model_size="B", pretrained=False, dropout=0.1, s
 
 
 def get_efficientnet_v2_structure(config, model_size='B'):
-    print(model_size)
+    #print(model_size)
     with open(config, 'r') as file:
         info = yaml.safe_load(file)
     efficientnet_config = info['efficient-net-blocks'][model_size]
-    print(efficientnet_config)
+    #print(efficientnet_config)
 
     return info['efficient-net-blocks'][model_size]
 

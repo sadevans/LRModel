@@ -1,9 +1,9 @@
 import torch
 import torch.nn as nn
-from efficientnet import EfficientNetV2, get_efficientnet_v2
-from frontend import Conv3D, get_conv_3d
-from transformer import TransformerEncoder
-from temporal import TCN
+from .efficientnet import EfficientNetV2, get_efficientnet_v2
+from .frontend import Conv3D, get_conv_3d
+from .transformer import TransformerEncoder
+from .temporal import TCN
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -35,29 +35,35 @@ class E2E(nn.Module):
 
         # self.criterion = 
     def forward(self, x, show=False):
+        print(x)
+        batch_size = x.shape[0]
+        print("BATCH SIZE: ", batch_size)
+        B, C, T, H, W = x.shape
         print("INPUT SHAPE: ", x.shape)
         x = self.frontend_3d(x) # After frontend x shoud be size: Frames x 24 x 44 x 44
         print("SHAPE AFTER FRONTEND 3D: ", x.shape)
         Tnew = x.shape[2]
+        # print(x.view(-1, x.size(-1)).shape)
         x = threeD_to_2D_tensor(x)
         print("SHAPE AFTER CONVERTION INTO 2D: ", x.shape)
         x = self.frontend(x) # After frontend x shoud be size: Frames x 384
         print("SHAPE AFTER FRONTEND: ", x.shape)
-        x = x.squeeze(2,3)
+        # x = x.squeeze(2,3)
         # x = x.squeeze(2)
+        x = x.view(B, Tnew, x.size(1))
 
-        print(x)
+        #print(x)
 
         if show:
-            plt.imshow(x.detach().numpy())
+            plt.imshow(x[0].detach().numpy())
             plt.show()
         print("SHAPE BEFORE TRANFORMER: ", x.shape)
         x = self.transformer_encoder(x) # After transformer x shoud be size: Frames x 384
         print("SHAPE AFTER TRANSFORMER: ", x.shape)
         if show:
-            plt.imshow(x.detach().numpy())
+            plt.imshow(x[0].detach().numpy())
             plt.show()
-        x = x.unsqueeze(-1)
+        # x = x.unsqueeze(-1)
         print(x.shape)
         x = self.tcn_block(x) # After TCN x should be size: Frames x 463
         print("SHAPE AFTER TCN: ", x.shape)
@@ -65,7 +71,7 @@ class E2E(nn.Module):
         x = self.temporal_avg(x)
         x = x.transpose(1, 0)
 
-        print(x.shape)
+        #print(x.shape)
         return x
 
 
@@ -73,6 +79,6 @@ if __name__ == "__main__":
     test_tensor = torch.FloatTensor(np.random.rand(1, 29, 1, 88, 88))
     # test_tensor = torch.FloatTensor(np.random.rand(29, 1, 88, 88))
 
-    print(test_tensor.shape)
+    #print(test_tensor.shape)
     model = E2E("/home/sadevans/space/personal/LRModel/config_ef.yaml", efficient_net_size="B")
     model(test_tensor, show=False)
