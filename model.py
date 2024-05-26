@@ -42,8 +42,8 @@ class Model(nn.Module):
         self.linear = nn.Linear(512, vocab_size)
 
     def forward(self, x):
-        # #print(x.shape, len(x.shape))
-        # #print(x)
+        # ##print(x.shape, len(x.shape))
+        # ##print(x)
 
         x = self.conv1(x)
         x = self.relu1(x)
@@ -57,33 +57,37 @@ class Model(nn.Module):
         x = self.relu3(x)
         x = self.maxpool3(x)
 
-        # #print(x.size())
+        # ##print(x.size())
         x = x.permute(0, 2, 1, 3, 4)
         # x = x.view(x.size(0), 1, -1)
         
         # x = x.view(batch_size, seq_len, -1)
         x = self.flatten(x)
         batch_size, seq_len, num_features = x.size()
-        # #print(x.size())
+        # ##print(x.size())
         x = x.view(batch_size, seq_len, -1)
 
         self.lstm1.flatten_parameters()
         self.lstm2.flatten_parameters()
 
-        # #print('X SHAPE: ', x.shape)
+        #print('X SHAPE BEFORE LSTM: ', x.shape)
         x, _ = self.lstm1(x)
         x, _ = self.lstm2(x)
+        #print('X SHAPE AFTER LSTM: ', x.shape)
+
 
         # x, _ = nn.utils.rnn.pad_packed_sequence(x, batch_first=True)
 
         x = self.linear(x)
+        #print('X SHAPE AFTER LINEAR: ', x.shape)
+
 
         return x
 
     # def forward(self, x):
-    #     #print(x.shape, len(x.shape))
-    #     #print(x)
+    #     ##print(x.shape, len(x.shape))
+    #     ##print(x)
     #     # x = x.view(x.shape[1], x.shape[2], x.shape[3], x.shape[4],x.shape[5])
-    #     # #print(x.shape)
+    #     # ##print(x.shape)
 
     #     return self.model(x)

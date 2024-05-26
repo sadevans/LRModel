@@ -36,7 +36,7 @@ class MyDataset:
 
 
         # self.load_list(label_path)
-        # #print(self.list_files)
+        # ##print(self.list_files)
 
     def load_list(self, label_path):
         paths_counts_labels = []
@@ -44,7 +44,7 @@ class MyDataset:
             dataset_name, rel_path, input_length, token_id = path_count_label.split(",")
             txt_path = os.path.join(self.root, dataset_name,rel_path.replace('video', 'text').replace('mp4', 'txt'))
             content = self.load_anno(txt_path)
-            # #print(MyDataset.arr2txt(content, 1))
+            # ##print(MyDataset.arr2txt(content, 1))
             paths_counts_labels.append(
                 (
                     dataset_name,
@@ -59,14 +59,14 @@ class MyDataset:
     def load_anno(self, name):
         with open(name, 'r') as f:
             line = f.readlines()[0].replace('-', ' ')
-            # #print(line)
+            # ##print(line)
             # if 'и так получилось что я там и оставался жить' in line:
             line = re.sub(r'[^0-9а-яА-Я ]', '', line)
             line = line.strip().split(' ')
             for i, char in enumerate(line):
                 if char.isdigit():
                     line[i] = num2words(char, lang='ru')
-            # #print(line)
+            # ##print(line)
         return MyDataset.txt2arr(' '.join(line), 1)
         # return MyDataset.txt2arr(' '.join(line), 0)
 
@@ -84,27 +84,32 @@ class MyDataset:
 
     def __getitem__(self, idx):
         dataset_name, rel_path, input_length, token_id = self.list_files[idx]
-        # #print(self.list_files[:][3])
+        # ##print(self.list_files[:][3])
         path = os.path.join(self.root, dataset_name, rel_path)
         if self.modality == "video":
             video = self.load_video(path)
             video = self.video_transform(video)
             video = (video - video.mean()) / video.std()
+
+            length = video.shape[0]
+            print(video.shape)
             # video = video.permute(3, 0, 1, 2)
-            vid_len = video.shape[0]
-            txt_len = token_id.shape[0]
-            # #print(video.shape, token_id.shape)
+            # vid_len = video.shape[0]
+            # txt_len = token_id.shape[0]
+            # ##print(video.shape, token_id.shape)
 
             # a = [video[0]]
             # a.append(np.zeros(video[0].shape))
-            # #print(len(a))
-            # #print('HERE: ', np.stack(a, axis=0).shape)
+            # ##print(len(a))
+            # ##print('HERE: ', np.stack(a, axis=0).shape)
             # b = video[1]
 
             # v = self._padding(video, self.vid_pad, pad_val=0.0)
 
             # token_id = self._padding(token_id, self.txt_pad, pad_val=-1)
-            return {"vid": video, "txt": token_id}
+            # return {"vid": video, "txt": token_id}
+            return video, token_id, length
+            # return 
             # return {'vid': torch.FloatTensor(video), 
             # 'txt': torch.LongTensor(token_id),
             # 'txt_len': len(token_id),
@@ -140,7 +145,7 @@ class MyDataset:
 
     def _padding(self, array, length, pad_val):
         array = [array[_] for _ in range(array.shape[0])]
-        # #print(array, len(array), array[0].shape)
+        # ##print(array, len(array), array[0].shape)
         size = array[0].shape
         for i in range(length - len(array)):
             array.append(np.zeros(size))
@@ -157,10 +162,10 @@ class MyDataset:
     @staticmethod
     def arr2txt(arr, start):
         txt = []
-        # #print(arr.detach().cpu().numpy(), type(arr.detach().cpu().numpy()))
+        # ##print(arr.detach().cpu().numpy(), type(arr.detach().cpu().numpy()))
         # arr = [t[t != -1] for t in arr]
         arr = arr[arr != -1]
-        # #print(arr)
+        # ##print(arr)
         for n in arr:
             if(n >= start):
                 txt.append(MyDataset.letters[n - start])     
@@ -168,9 +173,10 @@ class MyDataset:
     
     @staticmethod
     def ctc_arr2txt(arr, start):
-        pre = -1
+        # pre = -1
+        pre = 0
         txt = []
-        # #print(arr)
+        # ##print(arr)
         for n in arr:
             if(pre != n and n >= start):                
                 if(len(txt) > 0 and txt[-1] == ' ' and MyDataset.letters[n - start] == ' '):

@@ -43,16 +43,16 @@ class CustomCTCFunction(Function):
                 zero_infinity=zero_infinity
             )
 
-            #print('LOSS: ', loss)
+            ##print('LOSS: ', loss)
             ctx.save_for_backward(
                 log_prob,
                 loss
             )
         ctx.save_grad_input = None
         # for i, l in enumerate(loss):
-        #     # #print(l)e
+        #     # ##print(l)e
         #     if l.item() == float('inf'):
-        #         #print(i)
+        #         ##print(i)
         return loss.clone()
 
     @staticmethod
@@ -114,20 +114,20 @@ def custom_ctc_loss(
         loss = torch.where(loss == inf, loss.new_zeros(1), loss)
 
     if reduction == "mean":
-        #print(loss)
+        ##print(loss)
         target_length = target_lengths.to(loss).clamp(min=1)
 
         return (loss / target_length).mean()
 
     elif reduction == "sum":
-        # #print(loss)
-        # #print(loss.sum())
-        # #print(loss.index('inf'))
+        # ##print(loss)
+        # ##print(loss.sum())
+        # ##print(loss.index('inf'))
         # for i, l in enumerate(loss):
-        #     # #print(l)e
+        #     # ##print(l)e
         #     if l.item() == float('inf'):
-        #         #print(i)
-        # #print(targets.shape, loss.shape)
+        #         ##print(i)
+        # ##print(targets.shape, loss.shape)
         return loss.sum()
 
     elif reduction == "none":
@@ -172,7 +172,7 @@ def ctc_decode(y):
 
 
 def train(model):
-    #print("in train")
+    ##print("in train")
     datamodule = DataModule(
         "video", 
         "/media/sadevans/T7 Shield/PERSONAL/Diplom/datasets/Vmeste/for_",
@@ -182,94 +182,94 @@ def train(model):
     )
     max_epochs = 2
     loader = datamodule.train_dataloader()
-    #print("loader: ", loader)
+    ##print("loader: ", loader)
     optimizer = optim.Adam(model.parameters(),
                 lr = 1e-3,
                 weight_decay = 0.,
                 amsgrad = True)
                 
-    # #print('num_train_data:{}'.format(len(dataset.data)))    
+    # ##print('num_train_data:{}'.format(len(dataset.data)))    
     crit = nn.CTCLoss(reduction="sum", zero_infinity=True)
     tic = time.time()
     
     train_wer = []
     for epoch in range(max_epochs):
-        # #print("in train loop")
+        # ##print("in train loop")
         model.train()
         for (i_iter, input) in enumerate(loader):
-            # #print(epoch)
+            # ##print(epoch)
             # model.train()
             
 
             vid = input.get('vid').to(device)
             batch_size, frames, channels, hight, width = vid.shape
-            #print(batch_size, frames, channels, hight, width)
+            ##print(batch_size, frames, channels, hight, width)
         #     vid = vid.permute(0, 2, 1, 3, 4)
         #     # break
-        #     #print("vid shape: ", vid.shape)
+        #     ##print("vid shape: ", vid.shape)
         #     txt = input.get('txt').to(device)
-        #     #print("txt shape: ", txt.shape)
+        #     ##print("txt shape: ", txt.shape)
         #     vid_len = input.get('vid_len').to(device)
         #     txt_len = input.get('txt_len').to(device)
-        #     # #print('here: ', vid[58], txt[58], MyDataset.arr2txt(txt[58], start=1))
+        #     # ##print('here: ', vid[58], txt[58], MyDataset.arr2txt(txt[58], start=1))
         #     # break
         #     optimizer.zero_grad()
-        #     # #print(vid)
+        #     # ##print(vid)
            
         #     # y = net(vid)
         #     y = model(vid)
 
-        #     # #print(model.weights)
+        #     # ##print(model.weights)
         #     if torch.any(torch.isnan(y)):
-        #         #print('THERE ARE NANS AFTER')
-        #     # #print(y)
-        #     # #print('Y SHAPE: ', y.shape)
-        #     # #print('TXT SHAPE: ', txt.squeeze().shape)
-        #     # #print(txt)
-        #     # #print(y.transpose(0, 1).shape)
-        #     # #print(y.transpose(0, 1).log_softmax(-1))
+        #         ##print('THERE ARE NANS AFTER')
+        #     # ##print(y)
+        #     # ##print('Y SHAPE: ', y.shape)
+        #     # ##print('TXT SHAPE: ', txt.squeeze().shape)
+        #     # ##print(txt)
+        #     # ##print(y.transpose(0, 1).shape)
+        #     # ##print(y.transpose(0, 1).log_softmax(-1))
         #     # logits = y.transpose(0, 1).log_softmax(-1)
         #     # sequence, batch_size, channels,  = logits.size()
-        #     # #print(batch_size, channels, sequence)
-        #     # #print(vid_len.view(-1).shape)
+        #     # ##print(batch_size, channels, sequence)
+        #     # ##print(vid_len.view(-1).shape)
         #     txts = [t[t != -1] for t in txt]
         #     # l = 0
         #     # for t in txts:
         #     #     l+= t.shape[0]
-        #     # #print(l)
-        #     # #print(type(txts), txts)
+        #     # ##print(l)
+        #     # ##print(type(txts), txts)
         #     # for t in txt:
-        #     #     #print(t)
-        #     #     #print('here: ', type(t[t!=-1]))
-        #     # #print(txt[0][0])
-        #     # #print(type(txt[0][0]))
+        #     #     ##print(t)
+        #     #     ##print('here: ', type(t[t!=-1]))
+        #     # ##print(txt[0][0])
+        #     # ##print(type(txt[0][0]))
         #     # txts = [t[t != -1] for t in txt]
         #     # break
         #     txts_pad = torch.cat(txts)
-        #     #print(txts_pad.shape)
+        #     ##print(txts_pad.shape)
 
         #     # olens = to_device(y, torch.LongTensor([len(s) for s in txts]))
-        #     # #print(olens.shape, txt_len.view(-1).shape)
+        #     # ##print(olens.shape, txt_len.view(-1).shape)
         #     # break
         #     # loss = crit(y.transpose(0, 1).log_softmax(-1), txt.squeeze(), vid_len.view(-1), txt_len.view(-1))
         #     # loss = crit(y.transpose(0, 1).log_softmax(-1), txts, vid_len.view(-1), olens)
         #     # loss = crit(y.transpose(0, 1).log_softmax(-1), txts_pad, vid_len.view(-1), txt_len.view(-1))
-        #     #print(y.transpose(0, 1).log_softmax(-1).shape, txts_pad.shape, vid_len.shape, txt_len.shape)
+        #     ##print(y.transpose(0, 1).log_softmax(-1).shape, txts_pad.shape, vid_len.shape, txt_len.shape)
         #     loss = custom_ctc_loss(y.transpose(0, 1).log_softmax(-1), txts_pad, vid_len.view(-1), txt_len.view(-1), zero_infinity=True)
-        #     # #print(loss)
+        #     # ##print(loss)
 
         #     loss = loss / y.size(1)
 
-        #     #print('LOSS: ', loss)
+        #     ##print('LOSS: ', loss)
         #     # break
         #     # loss.retain_grad()
         #     loss.backward()
-        #     # #print('LOSS GRADS: ', loss.grad.data)
+        #     # ##print('LOSS GRADS: ', loss.grad.data)
         #     for name, param in model.named_parameters():
         #         if param.grad is not None:
-        #             #print("Gradients for parameter", name)
-        #             #print(param.grad)
-        #         else: #print('param.grad is None')
+        #             ##print("Gradients for parameter", name)
+        #             ##print(param.grad)
+        #         else: ##print('param.grad is None')
 
         #     # if(True):
         #     optimizer.step()
@@ -277,12 +277,12 @@ def train(model):
         #     tot_iter = i_iter + epoch*len(loader)
             
         #     pred_txt = ctc_decode(y)
-        #     #print('PRED TXT: ', pred_txt)
+        #     ##print('PRED TXT: ', pred_txt)
             
         #     truth_txt = [MyDataset.arr2txt(txt[_], start=1) for _ in range(txt.size(0))]
-        #     #print('TRUTH TEXT: ', truth_txt)
+        #     ##print('TRUTH TEXT: ', truth_txt)
         #     train_wer.extend(MyDataset.wer(pred_txt, truth_txt))
-        #     #print('TRAIN WER: ', MyDataset.wer(pred_txt, truth_txt))
+        #     ##print('TRAIN WER: ', MyDataset.wer(pred_txt, truth_txt))
         #     # break
         # # break
         #     if(tot_iter % 10 == 0):
@@ -291,19 +291,19 @@ def train(model):
                 
         #         # writer.add_scalar('train loss', loss, tot_iter)
         #         # writer.add_scalar('train wer', np.array(train_wer).mean(), tot_iter)              
-        #         #print(''.join(101*'-'))                
-        #         #print('{:<50}|{:>50}'.format('predict', 'truth'))                
-        #         #print(''.join(101*'-'))
+        #         ##print(''.join(101*'-'))                
+        #         ##print('{:<50}|{:>50}'.format('predict', 'truth'))                
+        #         ##print(''.join(101*'-'))
                 
         #         for (predict, truth) in list(zip(pred_txt, truth_txt))[:3]:
-        #             #print('{:<50}|{:>50}'.format(predict, truth))
-        #         #print(''.join(101*'-'))                
-        #         #print('epoch={},tot_iter={},eta={},loss={},train_wer={}'.format(epoch, tot_iter, eta, loss, np.array(train_wer).mean()))
-        #         #print(''.join(101*'-'))
+        #             ##print('{:<50}|{:>50}'.format(predict, truth))
+        #         ##print(''.join(101*'-'))                
+        #         ##print('epoch={},tot_iter={},eta={},loss={},train_wer={}'.format(epoch, tot_iter, eta, loss, np.array(train_wer).mean()))
+        #         ##print(''.join(101*'-'))
                 
             # if(tot_iter % opt.test_step == 0):                
             #     (loss, wer, cer) = test(model, net)
-            #     #print('i_iter={},lr={},loss={},wer={},cer={}'
+            #     ##print('i_iter={},lr={},loss={},wer={},cer={}'
             #         .format(tot_iter,show_lr(optimizer),loss,wer,cer))
             #     writer.add_scalar('val loss', loss, tot_iter)                    
             #     writer.add_scalar('wer', wer, tot_iter)

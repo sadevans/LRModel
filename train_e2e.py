@@ -25,6 +25,12 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau, CosineAnnealingWarmResta
 # from model import Model
 from NEW.model.e2e import E2E
 
+def ctc_decode(y):
+    result = []
+    # ##print(y.shape)
+    y = y.argmax(-1)
+    # ##print(y)
+    return [MyDataset.ctc_arr2txt(y[_], start=1) for _ in range(y.size(0))]
 
 def to_device(m, x):
     """Send tensor into the device of the module.
@@ -86,27 +92,27 @@ def test(model, datamodule, loss):
         #     v = 1.0*(time.time()-tic)/(i_iter+1)
         #     eta = v * (len(val_dataloader)-i_iter) / 3600.0
             
-        #     #print(''.join(101*'-'))                
-        #     #print('{:<50}|{:>50}'.format('predict', 'truth'))
-        #     #print(''.join(101*'-'))                
+        #     ##print(''.join(101*'-'))                
+        #     ##print('{:<50}|{:>50}'.format('predict', 'truth'))
+        #     ##print(''.join(101*'-'))                
         #     for (predict, truth) in list(zip(pred_txt, truth_txt))[:10]:
-        #         #print('{:<50}|{:>50}'.format(predict, truth))                
-        #     #print(''.join(101 *'-'))
-        #     #print('test_iter={},eta={},wer={},cer={}'.format(i_iter,eta,np.array(wer).mean(),np.array(cer).mean()))                
-        #     #print(''.join(101 *'-'))
+        #         ##print('{:<50}|{:>50}'.format(predict, truth))                
+        #     ##print(''.join(101 *'-'))
+        #     ##print('test_iter={},eta={},wer={},cer={}'.format(i_iter,eta,np.array(wer).mean(),np.array(cer).mean()))                
+        #     ##print(''.join(101 *'-'))
             
     # return (np.array(loss_list).mean(), np.array(wer).mean(), np.array(cer).mean())
 
 
 
 def train(model, datamodule, optimizer, loss_fn, scheduler=None):
-    epochs = 1000
+    epochs = 100
     train_loss_history = []
     train_wer = []
     model = model.to(device)
     training_dataloader = datamodule.train_dataloader() 
-    # #print(training_dataloader)
-    # #print(len(training_dataloader.dataset))
+    # ##print(training_dataloader)
+    # ##print(len(training_dataloader.dataset))
     tic = time.time()
     for epoch in range(1, epochs+1):
         model.train()
@@ -122,29 +128,49 @@ def train(model, datamodule, optimizer, loss_fn, scheduler=None):
             vid_len = input.get('vid_len').to(device)
             txt_len = input.get('txt_len').to(device)
             batch_size, frames, channels, hight, width = vid.shape
-            # #print(batch_size, frames, channels, hight, width)
+            # ##print(batch_size, frames, channels, hight, width)
             batch_size, seq_length = txt.shape
             # vid = vid.permute(0, 2, 1, 3, 4)
 
-            optimizer.zero_grad()
-            pred_alignments = model(vid, show=True)                                          # [Batch, Seq Length, Class]
-            #print(pred_alignments)
-            break
-        break
-            # #print('OUTPUT SHAPE: ', pred_alignments.shape)
+            logits = model(vid, show=False)                                          # [Batch, Seq Length, Class]
+            #print(logits.shape)
+            # targets = torch.tensor([1, 5, 9, 100], device='cuda' if torch.cuda.is_available() else 'cpu')
+            # loss = loss_fn(logits, targets)/batch_size
+
+            pred_alignments_for_ctc = logits.permute(1, 0, -1)               # [Seq Length, Batch, Class]
+            #print("pred alignments shape: ", pred_alignments_for_ctc.shape)
+            txts = [t[t != 0] for t in txt]
+
+            input_length = torch.sum(torch.ones_like(logits[:, :, 0]), dim=1).int()
+            label_length = torch.sum(torch.ones_like(txt), dim=1)
+            #print(logits.shape)
+            loss = loss_fn(pred_alignments_for_ctc.log_softmax(-1), 
+                        torch.cat(txts), 
+                        # txt,
+                        # vid_len,
+                        input_length, 
+                        txt_len)/batch_size
+            # #print(loss)
+            loss.backward()
+            optimizer.step()
+            #print(loss)
+            ##print(pred_alignments)
+        #     break
+        # break
+            # ##print('OUTPUT SHAPE: ', pred_alignments.shape)
             # pred_alignments_for_ctc = pred_alignments.permute(1, 0, -1)               # [Seq Length, Batch, Class]
             # txts = [t[t != 0] for t in txt]
-            # #print(pred_alignments.log_softmax(-1).transpose(1, 0).shape, txt.shape, vid_len.shape, txt_len.shape, pred_alignments_for_ctc.shape)
+            # ##print(pred_alignments.log_softmax(-1).transpose(1, 0).shape, txt.shape, vid_len.shape, txt_len.shape, pred_alignments_for_ctc.shape)
             # pred_alignments_padded = nn.utils.rnn.pad_packed_sequence(pred_alignments)
 
             # input_length = torch.sum(torch.ones_like(pred_alignments[:, :, 0]), dim=1).int()
             # label_length = torch.sum(torch.ones_like(txt), dim=1)
 
-            # #print(input_length.shape, label_length.shape)
-            # #print(input_length, vid_len, txt_len, [torch.nonzero(pred_alignments[i]).size(0) for i in range(pred_alignments.shape[0])])
+            # ##print(input_length.shape, label_length.shape)
+            # ##print(input_length, vid_len, txt_len, [torch.nonzero(pred_alignments[i]).size(0) for i in range(pred_alignments.shape[0])])
 
 
-            # #print(pred_alignments.log_softmax(-1).transpose(1, 0).shape)
+            # ##print(pred_alignments.log_softmax(-1).transpose(1, 0).shape)
             # loss = loss_fn(pred_alignments.log_softmax(-1).transpose(1, 0), 
             #             torch.cat(txts), 
             #             # txt,
@@ -153,26 +179,26 @@ def train(model, datamodule, optimizer, loss_fn, scheduler=None):
             #             txt_len)
             
            
-            # #print('STEP LOSS: ', loss)
+            # ##print('STEP LOSS: ', loss)
             # loss.backward()
             # for name, param in model.named_parameters():
             #     if param.grad is not None:
-            #         #print("Gradients for parameter", name)
-            #         #print(param.grad)
-            #     else: #print('param.grad is None')
+            #         ##print("Gradients for parameter", name)
+            #         ##print(param.grad)
+            #     else: ##print('param.grad is None')
             # optimizer.step()
 
-            # if scheduler is not None:
-            #     scheduler.step(loss)
+            if scheduler is not None:
+                scheduler.step(loss)
 
             # tot_iter = it + epoch*len(training_dataloader)
             
-            # #print(pred_alignments)
-            # pred_txt = ctc_decode(pred_alignments)
-            # #print(pred_txt)
-            # #print(pred_alignments, pred_alignments_for_ctc)
-            # truth_txt = [MyDataset.arr2txt(txt[_], start=1) for _ in range(txt.size(0))]
-            # train_wer.extend(MyDataset.wer(pred_txt, truth_txt))
+            # ##print(pred_alignments)
+            pred_txt = ctc_decode(logits)
+            #print(pred_txt)
+            # ##print(pred_alignments, pred_alignments_for_ctc)
+            truth_txt = [MyDataset.arr2txt(txt[_], start=1) for _ in range(txt.size(0))]
+            train_wer.extend(MyDataset.wer(pred_txt, truth_txt))
             
             # if(tot_iter % 10 == 0):
             #     v = 1.0*(time.time()-tic)/(tot_iter+1)
@@ -180,17 +206,17 @@ def train(model, datamodule, optimizer, loss_fn, scheduler=None):
                 
                 # writer.add_scalar('train loss', loss, tot_iter)
                 # writer.add_scalar('train wer', np.array(train_wer).mean(), tot_iter)              
-                # #print(''.join(101*'-'))                
-                # #print('{:<50}|{:>50}'.format('predict', 'truth'))                
-                # #print(''.join(101*'-'))
+                # ##print(''.join(101*'-'))                
+                # ##print('{:<50}|{:>50}'.format('predict', 'truth'))                
+                # ##print(''.join(101*'-'))
                 
                 # for (predict, truth) in list(zip(pred_txt, truth_txt))[:3]:
-                #     #print('{:<50}|{:>50}'.format(predict, truth))
-                # #print(''.join(101*'-'))                
-                # #print('epoch={},tot_iter={},eta={},loss={},train_wer={}'.format(epoch, tot_iter, eta, loss, np.array(train_wer).mean()))
-                # #print('epoch={},tot_iter={},eta={},loss={},train_wer={}'.format(epoch, tot_iter, eta, loss, MyDataset.wer(pred_txt, truth_txt).mean()))
+                #     ##print('{:<50}|{:>50}'.format(predict, truth))
+                # ##print(''.join(101*'-'))                
+                # ##print('epoch={},tot_iter={},eta={},loss={},train_wer={}'.format(epoch, tot_iter, eta, loss, np.array(train_wer).mean()))
+                # ##print('epoch={},tot_iter={},eta={},loss={},train_wer={}'.format(epoch, tot_iter, eta, loss, MyDataset.wer(pred_txt, truth_txt).mean()))
                 
-                # #print(''.join(101*'-'))
+                # ##print(''.join(101*'-'))
                 
 
 
@@ -210,30 +236,32 @@ if __name__ == "__main__":
     # train_dataloader = datamodule.train_dataloader()
 
     # for item in train_dataloader:
-    #     # #print(item)
+    #     # ##print(item)
     #     continue
     
 
     # model = Model(len(MyDataset.letters)+1)
     model = E2E("/home/sadevans/space/personal/LRModel/config_ef.yaml", efficient_net_size="B")
-    #print(model)
+    ##print(model)
     # optimizer = torch.optim.AdamW(params=model.parameters(), lr=1e-6, weight_decay=1e-5, betas=(0.9, 0.98))
 
 
-    optimizer = RMSprop(params=model.parameters(), lr=1e-6, weight_decay=1e-5, momentum= 0.9)
-    scheduler = CosineAnnealingWarmRestarts(optimizer, 3, 50, len(datamodule.train_dataloader()))
+    # optimizer = RMSprop(params=model.parameters(), lr=1e-6, weight_decay=1e-5, momentum= 0.9)
+    # scheduler = CosineAnnealingWarmRestarts(optimizer, 3, 50, len(datamodule.train_dataloader()))
     # scheduler = {"scheduler": scheduler, "interval": "step", "frequency": 1}
 
-    # optimizer = Adam(params=model.parameters(), 
-    #              lr=1e-8,
-    #              amsgrad=True,)
+    optimizer = Adam(params=model.parameters(), 
+                 lr=1e-8,
+                 amsgrad=True,)
     
     # optimizer =  Adam(params=model.parameters(), weight_decay=1e-5)
-    # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=2,threshold_mode='abs',min_lr=1e-8, verbose=True)
+    # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=2,threshold_mode='abs',min_lr=1e-10, verbose=True)
+    scheduler = CosineAnnealingWarmRestarts(optimizer, T_0=5, eta_min=1e-8)
 
-    #print('LEN LETTERS:', len(MyDataset.letters))
+    ##print('LEN LETTERS:', len(MyDataset.letters))
     # blank=len(MyDataset.letters),
-    loss_fn = nn.CTCLoss(zero_infinity=True, reduction='mean')
+    loss_fn = nn.CTCLoss(zero_infinity=True, reduction='sum')
+    # loss_fn = nn.CrossEntropyLoss()
     # loss_fn = CTCLossWithLengthPenalty(length_penalty_factor=0.5)
-    #print(optimizer)
+    ##print(optimizer)
     train(model, datamodule, optimizer, loss_fn, scheduler)

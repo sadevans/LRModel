@@ -39,8 +39,8 @@ class TCN(nn.Module):
                Shape: (batch_size, sequence_length, embedding_dim)
         """
         x = x.transpose(1, 2)   # Transpose dimensions for convolution layers
-        print(x.shape)
+        # #print(x.shape)
         for layer in self.tcn_layers:
             x = layer(x)
-        x = self.avg_pool(x).squeeze(-1)
+        # x = self.avg_pool(x).squeeze(-1)
         return x

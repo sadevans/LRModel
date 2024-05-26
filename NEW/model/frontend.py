@@ -52,7 +52,7 @@ class Conv3D(nn.Module):
     """Convolution 3D block"""
     def __init__(self, in_channels=1, out_channels=24, kernel=(3, 5, 5), loss_type='relu', if_maxpool=False):
         super(Conv3D, self).__init__()
-        #print('here: ', in_channels, out_channels, kernel, loss_type, if_maxpool)
+        ##print('here: ', in_channels, out_channels, kernel, loss_type, if_maxpool)
         self.if_maxpool = if_maxpool
         if loss_type == "relu":
             self.act = nn.ReLU()
@@ -66,10 +66,10 @@ class Conv3D(nn.Module):
             self.maxpool = nn.MaxPool3d((1, 3, 3), (1, 2, 2), (0, 1, 1))
 
 
-    def forward(self, x):
-        #print("INPUT SHAPE IN 3D CONV: ", x.shape)
+    def forward(self, x, debug=True):
+        # if debug: print("INPUT SHAPE IN 3D CONV: ", x.shape)
         x = x.transpose(1, 2)  # [B, T, C, H, W] -> [B, C, T, H, W]
-        #print("INPUT SHAPE IN 3D CONV AFTER TRANSPOSE: ", x.shape)
+        #if debug: #print("INPUT SHAPE IN 3D CONV AFTER TRANSPOSE: ", x.shape)
 
         # B, C, T, H, W = x.size()
         x = self.conv3d(x)
@@ -79,10 +79,7 @@ class Conv3D(nn.Module):
         if self.if_maxpool:
             x = self.maxpool(x)
 
-        #print("SHAPE AFTER 3D CONV: ", x.shape)
-        # x = x.transpose(2, 1)
-        # #print("SHAPE AFTER 3D CONV TRANSPOSE: ", x.shape)
-
+        #if debug: #print("SHAPE AFTER 3D CONV: ", x.shape)
         return x
 
 
@@ -99,12 +96,12 @@ def get_conv_3d(config, model_size="S"):
 if __name__ == "__main__":
     with open('/home/sadevans/space/personal/LRModel/config_ef.yaml', 'r') as file:
         info = yaml.safe_load(file)
-    # #print(info['frontend-3d'])
+    # ##print(info['frontend-3d'])
 
     test_tensor = torch.FloatTensor(np.random.rand(4, 29, 1, 88, 88))
-    #print(test_tensor.shape)
+    ##print(test_tensor.shape)
     for info_el in info['frontend-3d']:
-        #print(info_el)
+        ##print(info_el)
         c = Conv3D(in_channels=info_el[0], out_channels=info_el[1], kernel=tuple(info_el[2]), loss_type=info_el[3], if_maxpool=info_el[4])
         out = c(test_tensor)
 

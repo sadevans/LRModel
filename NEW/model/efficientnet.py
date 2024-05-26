@@ -1,12 +1,7 @@
-import torch
 import torch.nn as nn
 from collections import OrderedDict
 from .efficientnet_layers.mbconv import MBConv, MBConvConfig
-from .efficientnet_layers.conv import ConvBnAct
-
-from .efficientnet_layers.seu import SqueezeExcite
-
-from .frontend import Conv3D
+from .frontend import get_conv_3d
 import copy
 import yaml
 
@@ -35,13 +30,11 @@ class EfficientNetV2(nn.Module):
 
         self.in_channel = layer_infos[0].in_ch
         self.final_stage_channel = layer_infos[-1].out_ch
-        # self.out_channels = out_channels
 
         self.cur_block = 0
         self.num_block = sum(stage.num_layers for stage in layer_infos)
         self.stochastic_depth = stochastic_depth
 
-        # self.frontend3d = Conv3D(1, 24)
         self.blocks = nn.Sequential(*self.make_stages(layer_infos, block))
 
        
@@ -52,19 +45,13 @@ class EfficientNetV2(nn.Module):
         ]))
 
     def make_stages(self, layer_infos, block):
-        #print("IN MAKING STAGES")
         return [layer for layer_info in layer_infos for layer in self.make_layers(copy.copy(layer_info), block)]
 
     def make_layers(self, layer_info, block):
         layers = []
-        # #print("layer innfo: ", layer_info)
-        #print("layers num: ", layer_info.num_layers)
         for i in range(layer_info.num_layers):
-            #print("layer info: ", layer_info.in_ch, layer_info.out_ch, layer_info.num_layers)
             layers.append(block(layer_info, sd_prob=self.get_sd_prob()))
             layer_info.in_ch = layer_info.out_ch
-            #print("layer info after: ", layer_info.in_ch, layer_info.out_ch)
-
             # layer_info.stride = 1
         return layers
 
@@ -73,41 +60,31 @@ class EfficientNetV2(nn.Module):
         self.cur_block += 1
         return sd_prob
 
-    def forward(self, x):
+    def forward(self, x, debug=False):
         """forward.
 
         :param x: torch.Tensor, input tensor with input size (B, C, T, H, W).
         """
-        #print("INPUT SHAPE IN EFFICIENT NET V2: ", x.shape)
-        # #print(self.blocks[0])
-        # return self.blocks(x)
+        if debug: print("INPUT SHAPE IN EFFICIENT NET V2: ", x.shape)
         for i, block in enumerate(self.blocks):
-            #print(f"NOW IN BLOCK {i}: ", block)
+            if debug: print(f"NOW IN BLOCK {i}: ", block)
             x = block(x)
-            #print(f"SHAPE AFTER BLOCK {i}: ", x.shape)
+            if debug: print(f"SHAPE AFTER BLOCK {i}: ", x.shape)
 
         x = self.stage_7(x)
 
         return x
-    # def change_dropout_rate(self, p):
-    #     self.head[-2] = nn.Dropout(p=p, inplace=True)
-
 
 def efficientnet_v2_init(model):
-    #print("IN INIT")
     for m in model.modules():
         if isinstance(m, nn.Conv2d):
-            # #print("CONV")
             nn.init.kaiming_normal_(m.weight, mode='fan_out')
             if m.bias is not None:
                 nn.init.zeros_(m.bias)
         elif isinstance(m, (nn.BatchNorm2d, nn.GroupNorm)):
-            # #print("BN")
             nn.init.ones_(m.weight)
             nn.init.zeros_(m.bias)
         elif isinstance(m, nn.Linear):
-            # #print("LINEAR")
-
             nn.init.normal_(m.weight, mean=0.0, std=0.01)
             nn.init.zeros_(m.bias)
 
@@ -117,28 +94,47 @@ def get_efficientnet_v2(config, model_size="B", pretrained=False, dropout=0.1, s
     model = EfficientNetV2(residual_config, dropout=dropout, stochastic_depth=stochastic_depth, block=MBConv, act_layer=nn.SiLU)
     efficientnet_v2_init(model)
 
-    # if pretrained:
-    #     load_from_zoo(model, model_name)
-
     return model
 
 
-
-
-
 def get_efficientnet_v2_structure(config, model_size='B'):
-    #print(model_size)
     with open(config, 'r') as file:
         info = yaml.safe_load(file)
     efficientnet_config = info['efficient-net-blocks'][model_size]
-    #print(efficientnet_config)
-
     return info['efficient-net-blocks'][model_size]
+
+
+def threeD_to_2D_tensor(x):
+    n_batch, n_channels, s_time, sx, sy = x.shape
+    x = x.transpose(1, 2)
+    return x.reshape(n_batch * s_time, n_channels, sx, sy)
+
+
+
+class Conv3DEfficientNetV2(nn.Module):
+    def __init__(self, config, efficient_net_size="B"):
+        super(Conv3DEfficientNetV2, self).__init__()
+        self.conv3d = get_conv_3d(config, model_size=efficient_net_size)
+        self.efnet = get_efficientnet_v2(config, model_size=efficient_net_size)
+
+    def forward(self, x, show=False, debug=False):
+        B, C, T, H, W = x.shape
+        if debug: print("INPUT SHAPE: ", x.shape)
+        x = self.conv3d(x)                                         # After efnet x shoud be size: Frames x Channels x H x W
+        if debug: print("SHAPE AFTER FRONTEND 3D: ", x.shape)
+        Tnew = x.shape[2]
+        x = threeD_to_2D_tensor(x)
+        
+        if debug: print("SHAPE AFTER CONVERTION INTO 2D: ", x.shape)
+        x = self.efnet(x)                                            # After efnet x shoud be size: Frames x 384
+        if debug: print("SHAPE AFTER FRONTEND: ", x.shape)
+        x = x.view(B, Tnew, x.size(1))
+
+        return x
 
 
 
 
 if __name__ == "__main__":
-    # get_efficientnet_v2_structure()
     model = get_efficientnet_v2()
     efficientnet_v2_init(model)
