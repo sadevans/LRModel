@@ -28,22 +28,10 @@ from torch.nn.utils.rnn import pad_sequence
 
 def pad(samples, pad_val=0.0):
     lengths = [s.shape[0] for s in samples]
-    # ##print('LENGTHS: ', lengths)
-    # ##print('LENGTHS: ', [s.shape[0] for s in samples])
-    
     max_size = max(lengths)
-    # ##print('MAX SIZE : ', max_size)
-    # if pad_val == -1:
-    #     ##print('HERE: ', samples, len(samples), samples[0].shape, samples[0].shape[1:])
-
-    # else:
-    #     ##print("VID SHAPE ", len(samples), samples[0].shape, samples[0].shape[1:])
-
     sample_shape = list(samples[0].shape[1:])
     collated_batch = samples[0].new_zeros([len(samples), max_size] + sample_shape)
-
     for i, sample in enumerate(samples):
-        # ##print('LEN SAMPLE: ', len(sample))
         diff = len(sample) - max_size
         if diff == 0:
             collated_batch[i] = sample
@@ -51,15 +39,6 @@ def pad(samples, pad_val=0.0):
             collated_batch[i] = torch.cat(
                 [sample, sample.new_full([-diff] + sample_shape, pad_val)]
             )
-    # if len(samples[0].shape) == 1:
-    #     ##print('IN TXT COLLATED PAD: ',  collated_batch.shape)
-        # collated_batch = collated_batch.unsqueeze(1)  # targets
-        # ##print('IN TXT COLLATED PAD AFTER: ',  collated_batch.shape)
-
-    # elif len(samples[0].shape) == 2:
-    #     pass  # collated_batch: [B, T, 1]s
-    # elif len(samples[0].shape) == 4:
-    #     pass  # collated_batch: [B, T, C, H, W]
     return collated_batch, lengths
 
 
@@ -71,11 +50,9 @@ def collate_pad(batch):
         c_batch, sample_lengths = pad(
             [s[data_type] for s in batch if s[data_type] is not None], pad_val
         )
-        # ##print('SAMPLE LENGTHS: ', torch.tensor(sample_lengths), torch.tensor(np.array(sample_lengths)))
         batch_out[data_type] = c_batch
         batch_out[data_type + "_len"] = torch.tensor(np.array(sample_lengths))
 
-    # ##print('BATCH: ', batch_out)
     return batch_out
     
 
@@ -90,15 +67,10 @@ def ctc_collate(batch):
     y = []
     for sub in ys:y.append(sub)
     y = pad_sequence(y, batch_first=True, padding_value=0)
-    # y = torch.IntTensor(y)
     lengths = torch.IntTensor(lens)
     y_lengths = torch.IntTensor([len(label) for label in ys])
     x = pad_sequence(xs, batch_first=True, padding_value=0)
-    # print('now: ', x.shape)
     x = x.narrow(1, 0, max_len)
-    # print(x.shape)
-
-    
     return x, y, lengths, y_lengths
 
 
@@ -126,6 +98,7 @@ class DataModule(pl.LightningDataModule):
             collate_fn=collate_fn,
         )
     
+
     def train_dataloader(self):
         train_ds = MyDataset(
             root_dir=self.root_dir,
@@ -147,7 +120,6 @@ class DataModule(pl.LightningDataModule):
             label_path=os.path.join(self.root_dir, self.label_dir, self.val_file),
             subset="val",
             modality=self.modality,
-            # audio_transform=AudioTransform("val"),
             video_transform=VideoTransform("val"),
         )
         return self.dataloader_(val_ds, collate_fn=ctc_collate)
