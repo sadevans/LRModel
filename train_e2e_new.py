@@ -25,10 +25,7 @@ survival_probability = 0.8
 
 
 def ctc_decode(y):
-    result = []
-    # ##print(y.shape)
     y = y.argmax(-1)
-    # ##print(y)
     return [MyDataset.ctc_arr2txt(y[_], start=1) for _ in range(y.size(0))]
 
 

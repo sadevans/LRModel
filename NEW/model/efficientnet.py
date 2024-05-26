@@ -84,6 +84,7 @@ def efficientnet_v2_init(model):
         elif isinstance(m, (nn.BatchNorm2d, nn.GroupNorm)):
             nn.init.ones_(m.weight)
             nn.init.zeros_(m.bias)
+            m.momentum = 0.99
         elif isinstance(m, nn.Linear):
             nn.init.normal_(m.weight, mean=0.0, std=0.01)
             nn.init.zeros_(m.bias)

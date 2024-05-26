@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from .efficientnet import Conv3DEfficientNetV2
 from .transformer import TransformerEncoder
-from .temporal import TCN
+from .temporal import TCN, tcn_init
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -22,7 +22,7 @@ class E2E(nn.Module):
 
         self.transformer_encoder = TransformerEncoder()
         self.tcn_block = TCN()
-
+        tcn_init(self.tcn_block)
 
         self.temporal_avg = nn.AdaptiveAvgPool1d(1)
 
