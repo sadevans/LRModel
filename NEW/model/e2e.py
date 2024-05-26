@@ -34,7 +34,7 @@ class E2E(nn.Module):
         # self.fc_layer = nn.Linear(463, num_classes)
 
 
-    def forward(self, x, show=False, debug=True):
+    def forward(self, x, show=False, debug=True, classification=False):
         x = self.frontend_3d(x)
         if debug: print("SHAPE AFTER FRONTEND: ", x.shape)
         if show:
@@ -51,19 +51,21 @@ class E2E(nn.Module):
         x = self.tcn_block(x) # After TCN x should be size: Frames x 463
         if debug:print("SHAPE AFTER TCN: ", x.shape)
         
-        # if avg pool
-        # x = x.transpose(1, 0)
-        # x = self.temporal_avg(x)
-        # print(x.shape)
-        # x = x.transpose(1, 0)
+        if classification:
+            # if avg pool
+            x = x.transpose(1, 0)
+            x = self.temporal_avg(x)
+            print(x.shape)
+            x = x.transpose(1, 0)
 
-        x = x.transpose(2,1)
+        else: x = x.transpose(2,1)
         # x = x.squeeze()
         if debug: print("X SHAPE BEFOR LINEAR: ", x.shape)
         x = self.fc_layer(x)
         if debug: print("SHAPE AFTER LINEAR: ", x.shape)
-        # x = self.softmax(x)
-        #if debug: print("SHAPE AFTER SOFTMAX: ", x.shape)
+        if classification:
+            x = self.softmax(x)
+            if debug: print("SHAPE AFTER SOFTMAX: ", x.shape)
 
         return x
 
