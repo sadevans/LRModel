@@ -52,7 +52,7 @@ def train(model, datamodule, optimizer, scheduler, loss_fn, epochs=10, device='c
             # vid_len = batch.get('vid_len').to(device)
             # txt_len = batch.get('txt_len').to(device)
             vid, txt, vid_len, txt_len = batch
-            print(vid.shape, txt.shape, txt_len.shape, vid_len.shape)
+            # print(vid.shape, txt.shape, txt_len.shape, vid_len.shape)
             vid = vid.to(device)
             txt = txt.to(device)
 
@@ -60,9 +60,9 @@ def train(model, datamodule, optimizer, scheduler, loss_fn, epochs=10, device='c
             txt_len = txt_len.to(device)
             batch_size, frames, channels, hight, width = vid.shape
 
-            optimizer.zero_grad()
+            # optimizer.zero_grad()
             pred_alignments = model(vid)
-            print('HERE: ', pred_alignments.shape)
+            # print('HERE: ', pred_alignments.shape)
             pred_alignments_for_ctc = pred_alignments.permute(1, 0, -1)               # [Seq Length, Batch, Class]
             txts = [t[t != 0] for t in txt]
             input_length = torch.sum(torch.ones_like(pred_alignments[:, :, 0]), dim=1).int()
@@ -77,6 +77,7 @@ def train(model, datamodule, optimizer, scheduler, loss_fn, epochs=10, device='c
 
             # loss = loss.mean()
             # loss = loss/batch_size
+            optimizer.zero_grad()
             loss.backward()
             print("LOSS: ", loss)
             optimizer.step()
@@ -212,4 +213,4 @@ if __name__ == "__main__":
     loss_fn = nn.CTCLoss(reduction='mean', zero_infinity=True, blank=0).to(device)
     # loss_fn = nn.CrossEntropyLoss()
     # loss_fn = CTCLossWithLengthPenalty(length_penalty_factor=0.5)
-    train(model, datamodule, optimizer, None, loss_fn)
+    train(model, datamodule, optimizer, scheduler, loss_fn)

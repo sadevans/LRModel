@@ -31,7 +31,7 @@ class E2E(nn.Module):
         self.softmax = nn.Softmax(dim=1)
 
 
-    def forward(self, x, show=False, debug=True, classification=False):
+    def forward(self, x, show=False, debug=False, classification=False):
         x = self.frontend_3d(x)
         if debug: print("SHAPE AFTER FRONTEND: ", x.shape)
         if show:

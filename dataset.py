@@ -92,7 +92,7 @@ class MyDataset:
             video = (video - video.mean()) / video.std()
 
             length = video.shape[0]
-            print(video.shape)
+            # print(video.shape)
             # video = video.permute(3, 0, 1, 2)
             # vid_len = video.shape[0]
             # txt_len = token_id.shape[0]
