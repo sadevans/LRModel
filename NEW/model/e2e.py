@@ -28,10 +28,7 @@ class E2E(nn.Module):
 
         self.fc_layer = nn.Linear(463, num_classes)
         # self.fc_layer = nn.Linear(384, num_classes)
-
         self.softmax = nn.Softmax(dim=1)
-
-        # self.fc_layer = nn.Linear(463, num_classes)
 
 
     def forward(self, x, show=False, debug=True, classification=False):
