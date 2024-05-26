@@ -76,6 +76,7 @@ def train(model, datamodule, optimizer, scheduler, loss_fn, epochs=10, device='c
                         # input_length, 
                         vid_len,
                         txt_len)
+            
 
             # loss = loss.mean()
             # loss = loss/batch_size
@@ -91,8 +92,10 @@ def train(model, datamodule, optimizer, scheduler, loss_fn, epochs=10, device='c
             print(pred_txt)
             truth_txt = [MyDataset.ctc_arr2txt(txt[_], start=1) for _ in range(txt.size(0))]
             print(truth_txt)
+            # print("CROSS ENTROPY: ", )
         
         avg_train_loss = train_loss / len(datamodule.train_dataloader())
+        
         # wandb.log({"train_loss": avg_train_loss, "learning_rate": scheduler.get_last_lr()[0]}, step=epoch) 
 
         # validate(model, datamodule, loss_fn, epoch, device)
