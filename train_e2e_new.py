@@ -89,10 +89,7 @@ def train(model, datamodule, optimizer, scheduler, loss_fn, epochs=10, device='c
 
             pred_txt = ctc_decode(pred_alignments)
             print(pred_txt)
-            # ##print(pred_alignments, pred_alignments_for_ctc)
-            # print(txt, txt.size(0))
             truth_txt = [MyDataset.ctc_arr2txt(txt[_], start=1) for _ in range(txt.size(0))]
-            # train_wer.extend(MyDataset.wer(pred_txt, truth_txt))
             print(truth_txt)
         
         avg_train_loss = train_loss / len(datamodule.train_dataloader())
@@ -169,6 +166,7 @@ class CustomWarmupDecayScheduler(torch.optim.lr_scheduler.LambdaLR):
         else:
             return self.warmup_end_lr * self.decay_factor**((epoch - self.warmup_epochs) / self.decay_epochs)
 
+
 if __name__ == "__main__":
     BATCH_SIZE = 100
     datamodule = DataModule(
@@ -196,10 +194,10 @@ if __name__ == "__main__":
     # scheduler = CosineAnnealingWarmRestarts(optimizer, 3, 50, len(datamodule.train_dataloader()))
     # scheduler = {"scheduler": scheduler, "interval": "step", "frequency": 1}
 
-    optimizer = Adam(params=model.parameters(), 
-                 lr=1e-8,
-                 amsgrad=True,)
-    # optimizer = RMSprop(model.parameters(), lr=learning_rate, alpha=rms_decay, momentum=momentum, weight_decay=weight_decay)
+    # optimizer = Adam(params=model.parameters(), 
+    #              lr=1e-8,
+    #              amsgrad=True,)
+    optimizer = RMSprop(model.parameters(), lr=1e-8, alpha=rms_decay, momentum=momentum, weight_decay=weight_decay)
     
     # optimizer =  Adam(params=model.parameters(), weight_decay=1e-5)
     # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=2,threshold_mode='abs',min_lr=1e-10, verbose=True)
@@ -207,7 +205,7 @@ if __name__ == "__main__":
     #                                    decay_epochs=2.4, decay_factor=0.97)
     # scheduler = CosineAnnealingWarmRestarts(optimizer, T_0=5, eta_min=1e-8)
 
-    # scheduler = LambdaLR(optimizer, lr_lambda)
+    scheduler = LambdaLR(optimizer, lr_lambda)
     ##print('LEN LETTERS:', len(MyDataset.letters))
     # blank=len(MyDataset.letters),
     # loss_fn = nn.CTCLoss(zero_infinity=True, reduction='sum')
