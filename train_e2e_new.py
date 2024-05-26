@@ -65,7 +65,7 @@ def train(model, datamodule, optimizer, scheduler, loss_fn, epochs=10, device='c
 
             optimizer.zero_grad()
             pred_alignments = model(vid)
-
+            print('HERE: ', pred_alignments.shape)
             pred_alignments_for_ctc = pred_alignments.permute(1, 0, -1)               # [Seq Length, Batch, Class]
             txts = [t[t != 0] for t in txt]
             input_length = torch.sum(torch.ones_like(pred_alignments[:, :, 0]), dim=1).int()

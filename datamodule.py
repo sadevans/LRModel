@@ -94,7 +94,10 @@ def ctc_collate(batch):
     lengths = torch.IntTensor(lens)
     y_lengths = torch.IntTensor([len(label) for label in ys])
     x = pad_sequence(xs, batch_first=True, padding_value=0)
+    # print('now: ', x.shape)
     x = x.narrow(1, 0, max_len)
+    # print(x.shape)
+
     
     return x, y, lengths, y_lengths
 
