@@ -83,13 +83,29 @@ class Conv3D(nn.Module):
         return x
 
 
+def init_3dconv(model):
+    for m in model.modules():
+        if isinstance(m, nn.Conv2d):
+            nn.init.kaiming_normal_(m.weight, mode='fan_out')
+            if m.bias is not None:
+                nn.init.zeros_(m.bias)
+        elif isinstance(m, (nn.BatchNorm2d, nn.GroupNorm)):
+            nn.init.ones_(m.weight)
+            nn.init.zeros_(m.bias)
+            m.momentum = 0.99
+        elif isinstance(m, nn.Linear):
+            nn.init.normal_(m.weight, mean=0.0, std=0.01)
+            nn.init.zeros_(m.bias)
+
+
 def get_conv_3d(config, model_size="S"):
     with open(config, 'r') as file:
         info = yaml.safe_load(file)
     info_el = info['frontend-3d'][0]
     out_channels = info['efficient-net-blocks'][model_size][0][3]
-
-    return Conv3D(in_channels=info_el[0], out_channels=out_channels, kernel=tuple(info_el[2]), loss_type=info_el[3], if_maxpool=info_el[4])
+    model = Conv3D(in_channels=info_el[0], out_channels=out_channels, kernel=tuple(info_el[2]), loss_type=info_el[3], if_maxpool=info_el[4])
+    init_3dconv(model)
+    return model
 
 
 

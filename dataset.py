@@ -1,7 +1,7 @@
 import os
 
 import torch
-import torchaudio
+# import torchaudio
 import torchvision
 import numpy as np
 from num2words import num2words
@@ -26,7 +26,7 @@ class MyDataset:
         self.video_transform = video_transform
         self.rate_ratio = rate_ratio
 
-        self.vid_pad = 100
+        self.vid_pad = 200
         self.txt_pad = 200
 
 

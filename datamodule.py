@@ -85,7 +85,7 @@ class DataModule(pl.LightningDataModule):
         self.test_file = test_file
         self.label_dir = label_dir
 
-        self.batch_size = 4
+        self.batch_size = 40
         self.total_gpus =  torch.cuda.device_count()
 
 

@@ -253,13 +253,13 @@ def test(model, datamodule, loss):
             ##print(''.join(101*'-'))                
             ##print('{:<50}|{:>50}'.format('predict', 'truth'))
             ##print(''.join(101*'-'))                
-            for (predict, truth) in list(zip(pred_txt, truth_txt))[:10]:
+            # for (predict, truth) in list(zip(pred_txt, truth_txt))[:10]:
                 #print('{:<50}|{:>50}'.format(predict, truth))                
             ##print(''.join(101 *'-'))
             ##print('test_iter={},eta={},wer={},cer={}'.format(i_iter,eta,np.array(wer).mean(),np.array(cer).mean()))                
             ##print(''.join(101 *'-'))
             
-    return (np.array(loss_list).mean(), np.array(wer).mean(), np.array(cer).mean())
+    # return (np.array(loss_list).mean(), np.array(wer).mean(), np.array(cer).mean())
 
 
 
@@ -279,12 +279,18 @@ def train(model, datamodule, optimizer, loss_fn, scheduler=None):
         torch.cuda.empty_cache()
         # model.train()
         for it, input in enumerate(training_dataloader):
-            
-            vid = input.get('vid').to(device)
-            txt = input.get('txt').to(device)
+            # print(input)
+            vid, txt, vid_len, txt_len = input
+            vid = vid.to(device)
+            txt = txt.to(device)
+            vid_len = vid_len.to(device)
+            txt_len = txt_len.to(device)
 
-            vid_len = input.get('vid_len').to(device)
-            txt_len = input.get('txt_len').to(device)
+            # vid = input.get('vid').to(device)
+            # txt = input.get('txt').to(device)
+
+            # vid_len = input.get('vid_len').to(device)
+            # txt_len = input.get('txt_len').to(device)
             batch_size, frames, channels, hight, width = vid.shape
             # ##print(batch_size, frames, channels, hight, width)
             batch_size, seq_length = txt.shape
@@ -298,7 +304,10 @@ def train(model, datamodule, optimizer, loss_fn, scheduler=None):
 
             input_length = torch.sum(torch.ones_like(pred_alignments[:, :, 0]), dim=1).int()
             label_length = torch.sum(torch.ones_like(txt), dim=1)
-            loss = loss_fn(pred_alignments.log_softmax(-1).transpose(1, 0), 
+            loss = loss_fn(
+                        # pred_alignments.log_softmax(-1).transpose(1, 0), 
+                        pred_alignments.transpose(1, 0), 
+
                         torch.cat(txts), 
                         # txt,
                         # vid_len,

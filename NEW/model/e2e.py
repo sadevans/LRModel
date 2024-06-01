@@ -26,7 +26,7 @@ class E2E(nn.Module):
 
         self.temporal_avg = nn.AdaptiveAvgPool1d(1)
 
-        self.fc_layer = nn.Linear(463, num_classes)
+        self.fc_layer = nn.Linear(384, num_classes)
         # self.fc_layer = nn.Linear(384, num_classes)
         self.softmax = nn.Softmax(dim=1)
 
@@ -45,7 +45,7 @@ class E2E(nn.Module):
             plt.show()
         # x = x.unsqueeze(-1)
         if debug:print(x.shape)
-        x = self.tcn_block(x) # After TCN x should be size: Frames x 463
+        # x = self.tcn_block(x) # After TCN x should be size: Frames x 463
         if debug:print("SHAPE AFTER TCN: ", x.shape)
         
         if classification:
@@ -58,12 +58,15 @@ class E2E(nn.Module):
         else: x = x.transpose(2,1)
         # x = x.squeeze()
         if debug: print("X SHAPE BEFOR LINEAR: ", x.shape)
+        # print(x.shape)
+        x = x.permute(0, -1, 1)
         x = self.fc_layer(x)
         if debug: print("SHAPE AFTER LINEAR: ", x.shape)
         if classification:
             x = self.softmax(x)
             if debug: print("SHAPE AFTER SOFTMAX: ", x.shape)
-
+        else:
+            x = x.log_softmax(2)
         return x
 
 

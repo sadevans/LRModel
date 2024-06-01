@@ -11,6 +11,9 @@ from torch import nn
 from torch.optim import Adam, AdamW, RMSprop
 from torch.optim.lr_scheduler import ReduceLROnPlateau, CosineAnnealingWarmRestarts, LambdaLR
 from NEW.model.e2e import E2E
+from scheduler import WarmupCosineScheduler
+
+
 learning_rate = 0.18 
 warmup_epochs = 3
 decay_epochs = 2.4
@@ -35,7 +38,7 @@ def lr_lambda(epoch):
     else:
         return decay_rate ** ((epoch - warmup_epochs) // decay_epochs)
 
-def train(model, datamodule, optimizer, scheduler, loss_fn, epochs=10, device='cuda' if torch.cuda.is_available() else 'cpu'):
+def train(model, datamodule, optimizer, scheduler, loss_fn, epochs=1000, device='cuda' if torch.cuda.is_available() else 'cpu'):
     # wandb.init(project="lipreading", config={
     #     "learning_rate": optimizer.param_groups[0]['lr'],
     #     "epochs": epochs,
@@ -46,6 +49,7 @@ def train(model, datamodule, optimizer, scheduler, loss_fn, epochs=10, device='c
         model.train()
         train_loss = 0
         for batch in datamodule.train_dataloader():
+            torch.autograd.set_detect_anomaly(True)
             # vid = batch.get('vid').to(device)
             # txt = batch.get('txt').to(device)
 
@@ -62,38 +66,76 @@ def train(model, datamodule, optimizer, scheduler, loss_fn, epochs=10, device='c
 
             # optimizer.zero_grad()
             pred_alignments = model(vid)
+
+            batch, seq_len, classes = pred_alignments.shape
+            # preds_ctc = rearrange(preds, "n t c -> t n c")
+
+            
             # print('HERE: ', pred_alignments.shape)
             pred_alignments_for_ctc = pred_alignments.permute(1, 0, -1)               # [Seq Length, Batch, Class]
+
+            pred_lengths = torch.full(size=(batch,), fill_value=seq_len, dtype=torch.long)
+            target_lengths = torch.count_nonzero(txt, axis=1)
+
+            ####################
+            # Check 2
+            ####################
+            # print(pred_alignments_for_ctc.shape)
+            # for label_sequence in pred_alignments[0].detach().cpu().numpy():
+            #     for class_id in label_sequence:
+            #         assert  class_id > 0 and class_id < len(MyDataset.letters)+1
+
+            ####################
+            # Check 3
+            ####################
+
+            # min_expected_length = 1
+            # for label_sequence in list_of_all_labels:
+            #     assert  len(label_sequence) < model_prediction_sequence_length
+            #     assert  len(label_sequence) >= min_expected_length
+
             txts = [t[t != 0] for t in txt]
             input_length = torch.sum(torch.ones_like(pred_alignments[:, :, 0]), dim=1).int()
+        
             # label_length = torch.sum(torch.ones_like(txt), dim=1)
-            loss = loss_fn(pred_alignments_for_ctc.log_softmax(-1), 
+            loss = loss_fn(
+                        # pred_alignments_for_ctc.log_softmax(-1),
+                        pred_alignments_for_ctc, 
+                         
                         # torch.cat(txts),
                         txt, 
                         # input_length, 
-                        vid_len,
-                        txt_len)
+                        # vid_len,
+                        pred_lengths,
+                        # txt_len
+                        target_lengths
+
+                        )
             
 
             # loss = loss.mean()
             # loss = loss/batch_size
             optimizer.zero_grad()
             loss.backward()
-            print("LOSS: ", loss)
+            # print("LOSS: ", loss)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             optimizer.step()
 
             train_loss += loss.item()
             if scheduler is not None:
-                scheduler.step(loss)
+                scheduler.step()
 
             pred_txt = ctc_decode(pred_alignments)
-            print(pred_txt)
+            # print(pred_txt)
             truth_txt = [MyDataset.ctc_arr2txt(txt[_], start=1) for _ in range(txt.size(0))]
-            print(truth_txt)
+            # print(truth_txt)
             # print("CROSS ENTROPY: ", )
         
         avg_train_loss = train_loss / len(datamodule.train_dataloader())
-        
+        print("AVERAGE EPOCH LOSS: ", train_loss / len(datamodule.train_dataloader()))
+        print(pred_txt[0])
+        print(truth_txt[0])
+
         # wandb.log({"train_loss": avg_train_loss, "learning_rate": scheduler.get_last_lr()[0]}, step=epoch) 
 
         # validate(model, datamodule, loss_fn, epoch, device)
@@ -186,7 +228,8 @@ if __name__ == "__main__":
     
 
     # model = Model(len(MyDataset.letters)+1)
-    model = E2E("/home/sadevans/space/personal/LRModel/config_ef.yaml", num_classes=len(MyDataset.letters)+1, efficient_net_size="B")
+    model = E2E("/home/sadevans/space/LRModel/config_ef.yaml", num_classes=len(MyDataset.letters)+1, efficient_net_size="B")
+    model = model.to(device='cuda' if torch.cuda.is_available() else 'cpu')
     ##print(model)
     # optimizer = torch.optim.AdamW(params=model.parameters(), lr=1e-6, weight_decay=1e-5, betas=(0.9, 0.98))
 
@@ -198,19 +241,21 @@ if __name__ == "__main__":
     # optimizer = Adam(params=model.parameters(), 
     #              lr=1e-8,
     #              amsgrad=True,)
-    optimizer = RMSprop(model.parameters(), lr=1e-8, alpha=rms_decay, momentum=momentum, weight_decay=weight_decay)
+    # optimizer = RMSprop(model.parameters(), lr=0.0002, alpha=rms_decay, momentum=momentum, weight_decay=weight_decay)
     
     # optimizer =  Adam(params=model.parameters(), weight_decay=1e-5)
-    # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=2,threshold_mode='abs',min_lr=1e-10, verbose=True)
-    # scheduler = CustomWarmupDecayScheduler(optimizer, warmup_epochs=3, warmup_start_lr=1e-6, warmup_end_lr=0.18,
+    # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.97, patience=2,threshold_mode='abs',min_lr=1e-8, verbose=True)
+    # scheduler = CustomWarmupDecayScheduler(optimizer, warmup_epochs=3, warmup_start_lr=0.0002, warmup_end_lr=0.18,
     #                                    decay_epochs=2.4, decay_factor=0.97)
     # scheduler = CosineAnnealingWarmRestarts(optimizer, T_0=5, eta_min=1e-8)
 
-    scheduler = LambdaLR(optimizer, lr_lambda)
+    optimizer = torch.optim.AdamW([{"name": "model", "params": model.parameters(), "lr": 0.00002}], weight_decay=0.003, betas=(0.9, 0.98))
+    scheduler = WarmupCosineScheduler(optimizer, 5, 75, len(datamodule.train_dataloader()))
+    # scheduler = LambdaLR(optimizer, lr_lambda)
     ##print('LEN LETTERS:', len(MyDataset.letters))
     # blank=len(MyDataset.letters),
     # loss_fn = nn.CTCLoss(zero_infinity=True, reduction='sum')
     loss_fn = nn.CTCLoss(reduction='mean', zero_infinity=True, blank=0).to(device)
     # loss_fn = nn.CrossEntropyLoss()
     # loss_fn = CTCLossWithLengthPenalty(length_penalty_factor=0.5)
-    train(model, datamodule, optimizer, scheduler, loss_fn)
+    train(model, datamodule, optimizer, scheduler, loss_fn, epochs=75)
