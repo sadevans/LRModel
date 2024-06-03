@@ -159,16 +159,17 @@ def preprocess(args, subset):
     
     # processed_samples = 
     # i_samples = list(np.arange(0, len(video_samples)))
-    if subset == 'train':
-        print('Shuffle for train')
-        zipped = list(zip(video_samples, text_samples, id_samples))
-        random.seed(11)
-        random.shuffle(zipped)
-        video_samples, text_samples, id_samples = zip(*zipped)
+    # if subset == 'train':
+    print('Shuffle for train')
+    zipped = list(zip(video_samples, text_samples, id_samples))
+    random.seed(11)
+    random.shuffle(zipped)
+    video_samples, text_samples, id_samples = zip(*zipped)
     print(len(video_samples))
     if len(l) != 0:
         print(f'There are some lines in file: {len(l)}')
-        last = int(l[-1].split(',')[1][-9:-4])
+        # print(l[-1].split(',')[1])
+        last = int(l[-1].split(',')[1].split('/')[1].split('_')[1].split('.')[0])
         print(last)
         print(id_samples.index(last))
         print(id_samples[last])

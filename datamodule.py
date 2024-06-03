@@ -76,7 +76,7 @@ def ctc_collate(batch):
 
 class DataModule(pl.LightningDataModule):
     def __init__(self, modality, root_dir, train_file, val_file, test_file, label_dir='labels'):
-        self.letters = [char for char in ' абвгдежзийклмнопрстуфхцчшщъыьэюя']
+        # self.letters = [char for char in ' абвгдежзийклмнопрстуфхцчшщъыьэюя']
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.modality = modality
         self.root_dir = root_dir
@@ -85,7 +85,7 @@ class DataModule(pl.LightningDataModule):
         self.test_file = test_file
         self.label_dir = label_dir
 
-        self.batch_size = 40
+        self.batch_size = 80
         self.total_gpus =  torch.cuda.device_count()
 
 
@@ -109,8 +109,8 @@ class DataModule(pl.LightningDataModule):
             modality=self.modality,
             video_transform=VideoTransform("train"),
         )
-        return self.dataloader_(train_ds, shuffle=True,collate_fn=ctc_collate)
-        # return self.dataloader_(train_ds, shuffle=True,collate_fn=None)
+        # return self.dataloader_(train_ds, shuffle=True,collate_fn=ctc_collate)
+        return self.dataloader_(train_ds, shuffle=True,collate_fn=None)
 
     
 
@@ -122,8 +122,8 @@ class DataModule(pl.LightningDataModule):
             modality=self.modality,
             video_transform=VideoTransform("val"),
         )
-        return self.dataloader_(val_ds, collate_fn=ctc_collate)
-        # return self.dataloader_(val_ds, collate_fn=None)
+        # return self.dataloader_(val_ds, collate_fn=ctc_collate)
+        return self.dataloader_(val_ds, collate_fn=None)
 
 
     def test_dataloader(self):

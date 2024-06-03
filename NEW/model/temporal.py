@@ -7,11 +7,11 @@ class TemporalBlock(nn.Module):
 
         self.conv_block = nn.Sequential(
             nn.Conv1d(in_channels, out_channels, kernel_size, dilation=dilation, padding=padding),
-            nn.BatchNorm1d(out_channels),
+            nn.BatchNorm1d(out_channels, momentum=0.99),
             nn.PReLU(),
             nn.Dropout(dropout),
             nn.Conv1d(out_channels, out_channels, kernel_size, dilation=dilation, padding=padding),
-            nn.BatchNorm1d(out_channels),
+            nn.BatchNorm1d(out_channels, momentum=0.99),
             nn.PReLU(),
             nn.Dropout(dropout),
             nn.PReLU()
