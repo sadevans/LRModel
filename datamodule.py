@@ -28,7 +28,8 @@ from torch.nn.utils.rnn import pad_sequence
 
 def pad(samples, pad_val=0.0):
     lengths = [s.shape[0] for s in samples]
-    max_size = max(lengths)
+    # max_size = max(lengths)
+    max_size = 400
     sample_shape = list(samples[0].shape[1:])
     collated_batch = samples[0].new_zeros([len(samples), max_size] + sample_shape)
     for i, sample in enumerate(samples):
@@ -85,7 +86,7 @@ class DataModule(pl.LightningDataModule):
         self.test_file = test_file
         self.label_dir = label_dir
 
-        self.batch_size = 40
+        self.batch_size = 4
         self.total_gpus =  torch.cuda.device_count()
 
 

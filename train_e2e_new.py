@@ -46,9 +46,10 @@ def train(model, datamodule, optimizer, scheduler, loss_fn, epochs=1000, device=
     # })
 
     for epoch in range(epochs):
-        model.train()
+        # model.train()
         train_loss = 0
         for batch in datamodule.train_dataloader():
+            model.train()
             torch.autograd.set_detect_anomaly(True)
             # vid = batch.get('vid').to(device)
             # txt = batch.get('txt').to(device)
@@ -64,7 +65,7 @@ def train(model, datamodule, optimizer, scheduler, loss_fn, epochs=1000, device=
             txt_len = txt_len.to(device)
             batch_size, frames, channels, hight, width = vid.shape
 
-            # optimizer.zero_grad()
+            optimizer.zero_grad()
             pred_alignments = model(vid)
 
             batch, seq_len, classes = pred_alignments.shape
@@ -100,7 +101,7 @@ def train(model, datamodule, optimizer, scheduler, loss_fn, epochs=1000, device=
             # label_length = torch.sum(torch.ones_like(txt), dim=1)
             loss = loss_fn(
                         # pred_alignments_for_ctc.log_softmax(-1),
-                        pred_alignments_for_ctc, 
+                        pred_alignments_for_ctc.detach().requires_grad_(), 
                          
                         # torch.cat(txts),
                         txt, 
@@ -115,13 +116,15 @@ def train(model, datamodule, optimizer, scheduler, loss_fn, epochs=1000, device=
 
             # loss = loss.mean()
             # loss = loss/batch_size
-            optimizer.zero_grad()
+            # optimizer.zero_grad()
             loss.backward()
             # print("LOSS: ", loss)
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+            # torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             optimizer.step()
 
+            # train_loss += loss.item()
             train_loss += loss.item()
+            train_loss += loss.item()*batch_size
             if scheduler is not None:
                 scheduler.step()
 
@@ -220,15 +223,7 @@ if __name__ == "__main__":
         "/media/sadevans/T7 Shield/PERSONAL/Diplom/datasets/Vmeste/for_/labels/Vmeste_valid_transcript_lengths_seg24s_0to100_5000units.csv"
     )
 
-    # train_dataloader = datamodule.train_dataloader()
-
-    # for item in train_dataloader:
-    #     # ##print(item)
-    #     continue
-    
-
-    # model = Model(len(MyDataset.letters)+1)
-    model = E2E("/home/sadevans/space/LRModel/config_ef.yaml", num_classes=len(MyDataset.letters)+1, efficient_net_size="B")
+    model = E2E("/home/sadevans/space/personal/LRModel/config_ef.yaml", num_classes=len(MyDataset.letters)+1, efficient_net_size="B")
     model = model.to(device='cuda' if torch.cuda.is_available() else 'cpu')
     ##print(model)
     # optimizer = torch.optim.AdamW(params=model.parameters(), lr=1e-6, weight_decay=1e-5, betas=(0.9, 0.98))
@@ -249,8 +244,12 @@ if __name__ == "__main__":
     #                                    decay_epochs=2.4, decay_factor=0.97)
     # scheduler = CosineAnnealingWarmRestarts(optimizer, T_0=5, eta_min=1e-8)
 
-    optimizer = torch.optim.AdamW([{"name": "model", "params": model.parameters(), "lr": 0.00002}], weight_decay=0.003, betas=(0.9, 0.98))
-    scheduler = WarmupCosineScheduler(optimizer, 5, 75, len(datamodule.train_dataloader()))
+    # optimizer = torch.optim.AdamW([{"name": "model", "params": model.parameters(), "lr": 0.00002}], weight_decay=0.003, betas=(0.9, 0.98))
+    optimizer = Adam(params=model.parameters(), 
+                 lr=0.00002,
+                 amsgrad=True)
+    
+    # scheduler = WarmupCosineScheduler(optimizer, 5, 75, len(datamodule.train_dataloader()))
     # scheduler = LambdaLR(optimizer, lr_lambda)
     ##print('LEN LETTERS:', len(MyDataset.letters))
     # blank=len(MyDataset.letters),
@@ -258,4 +257,4 @@ if __name__ == "__main__":
     loss_fn = nn.CTCLoss(reduction='mean', zero_infinity=True, blank=0).to(device)
     # loss_fn = nn.CrossEntropyLoss()
     # loss_fn = CTCLossWithLengthPenalty(length_penalty_factor=0.5)
-    train(model, datamodule, optimizer, scheduler, loss_fn, epochs=75)
+    train(model, datamodule, optimizer, None, loss_fn, epochs=75)

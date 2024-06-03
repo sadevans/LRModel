@@ -26,8 +26,8 @@ class MyDataset:
         self.video_transform = video_transform
         self.rate_ratio = rate_ratio
 
-        self.vid_pad = 200
-        self.txt_pad = 200
+        self.vid_pad = 400
+        self.txt_pad = 400
 
 
         self.list_files = self.load_list(label_path)[:100]
