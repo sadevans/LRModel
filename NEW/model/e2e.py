@@ -22,12 +22,13 @@ class E2E(nn.Module):
 
         self.transformer_encoder = TransformerEncoder()
         self.tcn_block = TCN()
-        tcn_init(self.tcn_block)
+        # tcn_init(self.tcn_block)
 
         self.temporal_avg = nn.AdaptiveAvgPool1d(1)
 
         self.fc_layer = nn.Linear(463, num_classes)
-        self.softmax = nn.Softmax(dim=1)
+        # self.fc_layer = nn.Linear(384, num_classes)
+        self.softmax = nn.Softmax(dim=-1)
 
 
     def forward(self, x, show=False, debug=False, classification=False):
@@ -51,22 +52,27 @@ class E2E(nn.Module):
             # if avg pool
             x = x.transpose(1, 0)
             x = self.temporal_avg(x)
-            print(x.shape)
             x = x.transpose(1, 0)
 
         else: x = x.transpose(2,1)
-        # x = x.squeeze()
+        x = x.squeeze()
         if debug: print("X SHAPE BEFOR LINEAR: ", x.shape)
-        # print(x.shape)
         # x = x.permute(0, -1, 1)
         x = self.fc_layer(x)
         if debug: print("SHAPE AFTER LINEAR: ", x.shape)
-        if classification:
-            x = self.softmax(x)
-            if debug: print("SHAPE AFTER SOFTMAX: ", x.shape)
-        else:
-            x = x.log_softmax(2)
-        return x
+        # if classification:
+        #     x = self.softmax(x)
+        #     if debug: print("SHAPE AFTER SOFTMAX: ", x.shape)
+        # else:
+        #     x = x.log_softmax(2)
+        # print('SHAPE:', x.shape)
+
+        # return self.softmax(x)
+        return x.log_softmax(dim=1)
+    
+
+
+
 
 
 if __name__ == "__main__":

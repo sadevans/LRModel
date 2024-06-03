@@ -60,7 +60,7 @@ class Conv3D(nn.Module):
             self.act = Swish()
 
         self.conv3d = nn.Conv3d(in_channels, out_channels, kernel, (1, 2, 2), (1, 2, 2))
-        self.bn = nn.BatchNorm3d(out_channels)
+        self.bn = nn.BatchNorm3d(out_channels, momentum=0.99)
 
         if self.if_maxpool:
             self.maxpool = nn.MaxPool3d((1, 3, 3), (1, 2, 2), (0, 1, 1))
@@ -85,17 +85,17 @@ class Conv3D(nn.Module):
 
 def init_3dconv(model):
     for m in model.modules():
-        if isinstance(m, nn.Conv2d):
-            nn.init.kaiming_normal_(m.weight, mode='fan_out')
-            if m.bias is not None:
-                nn.init.zeros_(m.bias)
-        elif isinstance(m, (nn.BatchNorm2d, nn.GroupNorm)):
-            nn.init.ones_(m.weight)
-            nn.init.zeros_(m.bias)
+        # if isinstance(m, nn.Conv2d):
+        #     nn.init.kaiming_normal_(m.weight, mode='fan_out')
+        #     if m.bias is not None:
+        #         nn.init.zeros_(m.bias)
+        if isinstance(m, (nn.BatchNorm3d, nn.GroupNorm)):
+            # nn.init.ones_(m.weight)
+            # nn.init.zeros_(m.bias)
             m.momentum = 0.99
-        elif isinstance(m, nn.Linear):
-            nn.init.normal_(m.weight, mean=0.0, std=0.01)
-            nn.init.zeros_(m.bias)
+        # elif isinstance(m, nn.Linear):
+        #     nn.init.normal_(m.weight, mean=0.0, std=0.01)
+        #     nn.init.zeros_(m.bias)
 
 
 def get_conv_3d(config, model_size="S"):

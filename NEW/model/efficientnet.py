@@ -77,17 +77,17 @@ class EfficientNetV2(nn.Module):
 
 def efficientnet_v2_init(model):
     for m in model.modules():
-        if isinstance(m, nn.Conv2d):
-            nn.init.kaiming_normal_(m.weight, mode='fan_out')
-            if m.bias is not None:
-                nn.init.zeros_(m.bias)
-        elif isinstance(m, (nn.BatchNorm2d, nn.GroupNorm)):
-            nn.init.ones_(m.weight)
-            nn.init.zeros_(m.bias)
+        # if isinstance(m, nn.Conv2d):
+        #     nn.init.kaiming_normal_(m.weight, mode='fan_out')
+        #     if m.bias is not None:
+        #         nn.init.zeros_(m.bias)
+        if isinstance(m, (nn.BatchNorm2d)):
+            # nn.init.ones_(m.weight)
+            # nn.init.zeros_(m.bias)
             m.momentum = 0.99
-        elif isinstance(m, nn.Linear):
-            nn.init.normal_(m.weight, mean=0.0, std=0.01)
-            nn.init.zeros_(m.bias)
+        # elif isinstance(m, nn.Linear):
+        #     nn.init.normal_(m.weight, mean=0.0, std=0.01)
+        #     nn.init.zeros_(m.bias)
 
 
 def get_efficientnet_v2(config, model_size="B", pretrained=False, dropout=0.1, stochastic_depth=0.2, **kwargs):

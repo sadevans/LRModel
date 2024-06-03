@@ -30,7 +30,7 @@ class MyDataset:
         self.txt_pad = 400
 
 
-        self.list_files = self.load_list(label_path)[:100]
+        self.list_files = self.load_list(label_path)
         # self.list_files = self.load_list(label_path)
         # self.list_files = self.list_files[:len(self.list_files)//3]
 
@@ -43,14 +43,15 @@ class MyDataset:
         for path_count_label in open(label_path).read().splitlines():
             dataset_name, rel_path, input_length, token_id = path_count_label.split(",")
             txt_path = os.path.join(self.root, dataset_name,rel_path.replace('video', 'text').replace('mp4', 'txt'))
-            content = self.load_anno(txt_path)
+            # content = self.load_anno(txt_path)
+            content = token_id
             # ##print(MyDataset.arr2txt(content, 1))
             paths_counts_labels.append(
                 (
                     dataset_name,
                     rel_path,
                     int(input_length),
-                    torch.tensor([int(_) for _ in content]),
+                    content,
                 )
             )
         return paths_counts_labels
