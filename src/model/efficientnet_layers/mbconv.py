@@ -83,7 +83,7 @@ class MBConv(nn.Module):
 
         self.block = nn.Sequential(OrderedDict(block))
         self.use_skip_connection = c.stride == 1 and c.in_ch == c.out_ch
-        self.stochastic_path = StochasticDepth(sd_prob, "row")
+        self.stochastic_path = StochasticDepth(0.8, "row")
 
     def forward(self, x):
         # out = self.block(x)

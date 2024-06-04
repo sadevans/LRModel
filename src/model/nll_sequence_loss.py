@@ -1,5 +1,5 @@
 from torch import nn
-
+import torch
 
 class NLLSequenceLoss(nn.Module):
     def __init__(self):
@@ -9,7 +9,10 @@ class NLLSequenceLoss(nn.Module):
 
     def forward(self, pred, target):
         loss = 0.0
-        transposed = pred.transpose(0, 1).contiguous()
-        num_frames = pred.shape[1]
+        pred = pred.contiguous()
+
+        num_frames = pred.shape[0]
         for i in range(num_frames):
-            loss += self.criterion(transposed[i], target)
+            it = self.criterion(pred[i], torch.tensor(target[i].clone().detach(),dtype=torch.long))
+            loss += it
+        return loss

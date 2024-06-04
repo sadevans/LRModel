@@ -23,11 +23,11 @@ class TemporalBlock(nn.Module):
         return self.residual(x) + out  # Residual connection
 
 class TCN(nn.Module):
-    def __init__(self, input_dim=384, hidden_dim=463, num_layers=4):
+    def __init__(self, input_dim=384, hidden_dim=463, num_layers=4, dropout=0.2):
         super(TCN, self).__init__()
 
         self.tcn_layers = nn.ModuleList([
-            TemporalBlock(input_dim if l == 0 else hidden_dim, hidden_dim, kernel_size=3, padding=2**l, dilation=2**l, dropout=0.2)
+            TemporalBlock(input_dim if l == 0 else hidden_dim, hidden_dim, kernel_size=3, padding=2**l, dilation=2**l, dropout=dropout)
             for l in range(num_layers)
         ])
         self.avg_pool = nn.AdaptiveAvgPool1d(1)

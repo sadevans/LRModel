@@ -21,7 +21,7 @@ class EfficientNetV2(nn.Module):
         - dropout: dropout probability before classifier layer
         - stochastic depth: stochastic depth probability
     """
-    def __init__(self, layer_infos, out_channels=384, dropout=0.2, stochastic_depth=0.0,
+    def __init__(self, layer_infos, out_channels=384, dropout=0.3, stochastic_depth=0.8,
                  block=MBConv, act_layer=nn.SiLU, norm_layer=nn.BatchNorm2d):
         super(EfficientNetV2, self).__init__()
         self.layer_infos = layer_infos
@@ -52,7 +52,7 @@ class EfficientNetV2(nn.Module):
         for i in range(layer_info.num_layers):
             layers.append(block(layer_info, sd_prob=self.get_sd_prob()))
             layer_info.in_ch = layer_info.out_ch
-            # layer_info.stride = 1
+            layer_info.stride = 1
         return layers
 
     def get_sd_prob(self):
@@ -90,7 +90,7 @@ def efficientnet_v2_init(model):
         #     nn.init.zeros_(m.bias)
 
 
-def get_efficientnet_v2(config, model_size="B", pretrained=False, dropout=0.1, stochastic_depth=0.2, **kwargs):
+def get_efficientnet_v2(config, model_size="B", pretrained=False, dropout=0.3, stochastic_depth=0.8, **kwargs):
     residual_config = [MBConvConfig(*layer_config) for layer_config in get_efficientnet_v2_structure(config, model_size)]
     model = EfficientNetV2(residual_config, dropout=dropout, stochastic_depth=stochastic_depth, block=MBConv, act_layer=nn.SiLU)
     efficientnet_v2_init(model)
@@ -119,6 +119,10 @@ class Conv3DEfficientNetV2(nn.Module):
         self.efnet = get_efficientnet_v2(config, model_size=efficient_net_size)
 
     def forward(self, x, show=False, debug=False):
+        # print('SHAPE: ', x.shape)
+        # if (x.shape[1] != 1 or x.shape[1] != 3) and (x.shape[2] == 1 or x.shape[2] == 3):
+        #     x = x.permute(0, 2, 1, 3, 4)
+
         B, C, T, H, W = x.shape
         if debug: print("INPUT SHAPE: ", x.shape)
         x = self.conv3d(x)                                         # After efnet x shoud be size: Frames x Channels x H x W

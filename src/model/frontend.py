@@ -33,7 +33,10 @@ class Conv3D(nn.Module):
 
     def forward(self, x, debug=True):
         # if debug: print("INPUT SHAPE IN 3D CONV: ", x.shape)
-        x = x.transpose(1, 2)  # [B, T, C, H, W] -> [B, C, T, H, W]
+        # if (x.shape[1] != 1 or x.shape[1] != 3) and (x.shape[2] == 1 or x.shape[2] == 3):
+        #     x = x.permute(0, 2, 1, 3, 4)
+        # else:
+        #     x = x.transpose(1, 2)  # [B, T, C, H, W] -> [B, C, T, H, W]
         #if debug: #print("INPUT SHAPE IN 3D CONV AFTER TRANSPOSE: ", x.shape)
 
         # B, C, T, H, W = x.size()
@@ -54,7 +57,7 @@ def init_3dconv(model):
         #     nn.init.kaiming_normal_(m.weight, mode='fan_out')
         #     if m.bias is not None:
         #         nn.init.zeros_(m.bias)
-        if isinstance(m, (nn.BatchNorm3d, nn.GroupNorm)):
+        if isinstance(m, (nn.BatchNorm3d)):
             # nn.init.ones_(m.weight)
             # nn.init.zeros_(m.bias)
             m.momentum = 0.99
