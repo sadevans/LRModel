@@ -38,6 +38,7 @@ class TCN(nn.Module):
             x: Input from the Transformer encoder. 
                Shape: (batch_size, sequence_length, embedding_dim)
         """
+        print("HERE")
         x = x.transpose(1, 2)   # Transpose dimensions for convolution layers
         # #print(x.shape)
         for layer in self.tcn_layers:

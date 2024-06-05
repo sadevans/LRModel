@@ -6,6 +6,7 @@ from pytorch_lightning import LightningModule
 from sklearn.metrics import confusion_matrix
 from sklearn.utils.multiclass import unique_labels
 from torch.utils.data import DataLoader
+from src.data.lrw import LRWDataset
 
 # from src.data.lrw import LRWDatset
 from .efficientnet import Conv3DEfficientNetV2
@@ -16,22 +17,22 @@ import matplotlib.pyplot as plt
 from .nll_sequence_loss import NLLSequenceLoss
 from scheduler import WarmupCosineScheduler
 from torch import nn, optim
-from src.data.lrw import LRWDataset
-
+import torch.nn.functional as F
+# from pytorch_ignite.handlers import EMAHandler
 import os
-from ema_pytorch import ExponentialMovingAverage
+# from ema_pytorch import ExponentialMovingAverage
 
 
 class E2E(LightningModule):
-    def __init__(self, config, hparams=None, in_channels=1, augmentations=False, num_classes=34, efficient_net_size="S") :
+    def __init__(self, config, hparams=None, dropout=0.3, in_channels=1, augmentations=False, num_classes=34, efficient_net_size="S") :
         # super(E2E, self).__init__()
         super().__init__()
         # print(hparams)
-
+        self.dropout_rate = dropout
         self.save_hyperparameters(hparams)
 
         # print(self.hparams)
-        self.ema = ExponentialMovingAverage(self.encoder.parameters(), decay=0.995)
+        # self.ema = ExponentialMovingAverage(self.encoder.parameters(), decay=0.995)
         self.in_channels = in_channels
         self.augmentations = augmentations
         # self.num_classes = num_classes
@@ -39,8 +40,8 @@ class E2E(LightningModule):
 
         self.frontend_3d = Conv3DEfficientNetV2(config, efficient_net_size=efficient_net_size)
 
-        self.transformer_encoder = TransformerEncoder(dropout=0.3)
-        self.tcn_block = TCN(dropout=0.3)
+        self.transformer_encoder = TransformerEncoder(dropout=self.dropout_rate)
+        self.tcn_block = TCN(dropout=self.dropout_rate)
         # tcn_init(self.tcn_block)
 
         self.temporal_avg = nn.AdaptiveAvgPool1d(1)
@@ -51,6 +52,10 @@ class E2E(LightningModule):
 
         self.best_val_acc = 0
         self.epoch = 0
+
+        self.criterion = nn.NLLLoss()
+
+        # self.ema_handler = EMAHandler(self.parameters, alpha=(1 - 0.9999))
 
     def forward(self, x, show=False, debug=False, classification=False):
         x = self.frontend_3d(x)
@@ -89,25 +94,23 @@ class E2E(LightningModule):
         #     x = x.log_softmax(2)
         # print('SHAPE:', x.shape)
 
-        # return self.softmax(x)
-        return x.log_softmax(dim=1)
+        return self.softmax(x)
+        # return x.log_softmax(dim=1)
     
     def training_step(self, batch, batch_num):
         frames = batch['frames']
         labels = batch['label']
         # print("TRUE LABELS: ", labels)
         output = self.forward(frames)
-        loss = self.loss(output, labels.squeeze(1))
+        # loss = self.loss(output, labels.squeeze(1))
+        loss = self.criterion(output, labels.squeeze(1))
         # print("LOSS: ", loss)
         loss = loss.mean()
         acc = accuracy(output, labels)
         # logs = {'train_loss': loss, 'train_acc': acc, 'loss':loss}
-        # self.log({'train_loss': loss})
-        # lr_ = self.scheduler.get_last_lr()
         self.log("train_loss", loss, on_step=True, on_epoch=True, batch_size=self.hparams.batch_size, logger=True)
         self.log("train_acc", acc, on_step=True, on_epoch=True, batch_size=self.hparams.batch_size, logger=True)
-
-
+        # self.ema_handler.update(self.parameters())
         # return {'loss': loss, 'acc': acc, 'log': logs}
         return loss
 
@@ -115,10 +118,10 @@ class E2E(LightningModule):
         frames = batch['frames']
         labels = batch['label']
         words = batch['word']
-        # print("TRUE LABELS: ", labels)
-        # print("WORDS: ", words)
         output = self.forward(frames)
-        loss = self.loss(output, labels.squeeze(1))
+        # loss = self.loss(output, labels.squeeze(1))
+        loss = self.criterion(output, labels.squeeze(1))
+
         acc = accuracy(output, labels)
         sums = torch.sum(output, dim=1)
         _, predicted = sums.max(dim=-1)
@@ -130,9 +133,7 @@ class E2E(LightningModule):
             'predictions': predicted,
             'labels': labels.squeeze(dim=1),
             'words': words,
-            # 'loss':loss
         }
-        # return loss
 
     def validation_end(self, outputs):
         predictions = torch.cat([x['predictions'] for x in outputs]).cpu().numpy()
@@ -164,8 +165,8 @@ class E2E(LightningModule):
         # return logs
         # return avg_loss
 
-    def on_before_zero_grad(self):
-        self.ema.update(self.parameters())
+    # def on_before_zero_grad(self):
+    #     self.ema.update(self.parameters())
 
     def confusion_matrix(self, label, prediction, words, normalize=True):
         classes = unique_labels(label, prediction)
@@ -216,8 +217,11 @@ class E2E(LightningModule):
 
     def configure_optimizers(self):
         # return optim.Adam(self.parameters(), lr=self.hparams.lr, weight_decay=self.hparams.weight_decay, betas=(0.))
-        optimizer = optim.RMSprop([{"name": "model", "params": self.parameters(), "lr": self.hparams.lr}],  weight_decay=self.hparams.weight_decay, alpha=0.9, momentum= 0.9)
+        # optimizer = optim.RMSprop([{"name": "model", "params": self.parameters(), "lr": self.hparams.lr}],  weight_decay=self.hparams.weight_decay, alpha=0.9, momentum= 0.9)
         # optimizer = optim.RMSprop(params=self.parameters(), lr=self.hparams.lr,  weight_decay=self.hparams.weight_decay, alpha=0.9, momentum= 0.9)
+        # optimizer = optim.Adam([{"name": "model", "params": self.parameters(), "lr": self.hparams.lr}], weight_decay=self.hparams.weight_decay, betas=(0.9, 0.98))
+        
+        optimizer = optim.AdamW([{"name": "model", "params": self.parameters(), "lr": self.hparams.lr}], weight_decay=self.hparams.weight_decay, betas=(0.9, 0.98))
         
         # scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', min_lr=1e-8, factor=0.5, patience=2.4)
         # return [optimizer], [scheduler]
@@ -270,14 +274,14 @@ class E2E(LightningModule):
         return test_loader
 
 
-def accuracy(output, labels):
-    # print(output, labels)
-    sums = torch.sum(output, dim=1)
-    _, predicted = sums.max(dim=-1)
-    correct = (predicted == labels.squeeze(dim=1)).sum().type(torch.FloatTensor)
-    return correct / output.shape[0]
-    
 
+def accuracy(predictions, labels):
+    preds = torch.exp(predictions)
+    preds_ = torch.argmax(preds, dim=1)
+    correct = (preds_ == labels.squeeze(dim=1)).sum().item()
+    total = labels.squeeze(dim=1).size(0)
+    accuracy = correct / preds_.shape[0]
+    return accuracy
 
 
 
