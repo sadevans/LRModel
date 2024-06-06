@@ -4,7 +4,7 @@ import psutil
 import torch
 
 from pytorch_lightning import Trainer, seed_everything
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
+from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint, EarlyStopping
 from pytorch_lightning.loggers import WandbLogger
 from lightning_datamodule import DataModule
 # from src.checkpoint import load_checkpoint
@@ -12,11 +12,11 @@ from src.model.lrw_model import E2E
 import wandb
 import gc
 # wandb.login()
-from ray import tune
-from ray import train
-from ray.train import Checkpoint, get_checkpoint
-from ray.tune.schedulers import ASHAScheduler, FIFOScheduler
-import ray.cloudpickle as pickle
+# from ray import tune
+# from ray import train
+# from ray.train import Checkpoint, get_checkpoint
+# from ray.tune.schedulers import ASHAScheduler, FIFOScheduler
+# import ray.cloudpickle as pickle
 import os
 from functools import partial
 
@@ -95,6 +95,9 @@ if __name__ == "__main__":
 
     # parser.add_argument("--use_amp", default=False, action='store_true')
     args = parser.parse_args()
+
+    name = f"exp_lr{args.lr}_batch_size{args.batch_size}_dropout{args.dropout}"
+
     # print('HERE: ', args)
     checkpoint_callback = ModelCheckpoint(
         dirpath=args.checkpoint_dir,
@@ -106,22 +109,33 @@ if __name__ == "__main__":
         filename="{epoch}",
     )
 
+    save_checkpoint_dir = os.makedirs(args.checkpoint_dir + '/' + name, exist_ok=True) if args.checkpoint_dir else None
+    checkpoint = ModelCheckpoint(
+        monitor="val_acc",
+        mode="max",
+        dirpath=save_checkpoint_dir,
+        save_last=True,
+        filename="{epoch}",
+        save_top_k=10,
+    )
+    lr_monitor = LearningRateMonitor(logging_interval="step")
+
     early_stop_callback = EarlyStopping(
-        monitor='val_acc',
+        monitor='val_loss',
         min_delta=0.00,
         patience=10,
-        mode='max',
+        mode='min',
     )
 
 
     args.workers = psutil.cpu_count(logical=False) if args.workers == None else args.workers
     # args.pretrained = False if args.checkpoint != None else args.pretrained
 
-    config = {
-        "lr": tune.loguniform(1e-6, 1e-2),
-        "batch_size": tune.choice([16, 18]),
-        "dropout": tune.choice([0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8])
-    }
+    # config = {
+    #     "lr": tune.loguniform(1e-6, 1e-2),
+    #     "batch_size": tune.choice([16, 18]),
+    #     "dropout": tune.choice([0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8])
+    # }
 
     # scheduler = ASHAScheduler(
     #                             metric="train_loss",
@@ -147,14 +161,14 @@ if __name__ == "__main__":
         augmentations=False,
     )
     # datamodule = DataModule(hparams=args)
-    name = f"exp_lr{args.lr}_batch_size{args.batch_size}_dropout{args.dropout}"
+
     logger = WandbLogger(name=name, \
                          project=f'lipreading_lrw_classification_{args.words}words',\
                             save_dir=f"/media/sadevans/T7 Shield/PERSONAL/Diplom/datasets/LRW/checkpoints/{name}")
     logger.watch(model = model, log='gradients',log_graph=True)
 
     seed_everything(args.seed)
-    callbacks = [checkpoint_callback, early_stop_callback]
+    callbacks = [checkpoint_callback, early_stop_callback, lr_monitor]
     trainer = Trainer(
         logger=logger,
         gpus=-1,
@@ -174,7 +188,13 @@ if __name__ == "__main__":
         print(f"Initial val_acc: {logs['val_acc']:.4f}")
 
     # trainer.fit(modelmodule, datamodule)
-    trainer.fit(modelmodule)
+    # modelmodule = modelmodule.load_from_checkpoint("/media/sadevans/T7 Shield/PERSONAL/Diplom/datasets/LRW/checkpoints/epoch=9-v4.ckpt")
+    # trainer.fit(modelmodule)
+    ckpt = torch.load("/media/sadevans/T7 Shield/PERSONAL/Diplom/datasets/LRW/checkpoints/epoch=9-v4.ckpt", map_location=lambda storage, loc: storage)["state_dict"]
+    # print(ckpt.keys())
+    modelmodule.load_state_dict(ckpt)
+    # modelmodule.load_state_dict(torch.load("/media/sadevans/T7 Shield/PERSONAL/Diplom/datasets/LRW/checkpoints/epoch=9-v4.ckpt", map_location=lambda storage, loc: storage))
+    trainer.test(modelmodule)
 
     # logger.save_file(checkpoint_callback.last_checkpoint_path)
 

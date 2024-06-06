@@ -47,11 +47,12 @@ class E2E(LightningModule):
         self.temporal_avg = nn.AdaptiveAvgPool1d(1)
 
         self.fc_layer = nn.Linear(463, self.num_classes)
-        self.softmax = nn.LogSoftmax(dim=-1)
+        self.logsoftmax = nn.LogSoftmax(dim=-1)
         self.loss = NLLSequenceLoss()
 
         self.best_val_acc = 0
         self.epoch = 0
+        self.sum_batches = 0.0
 
         self.criterion = nn.NLLLoss()
 
@@ -93,39 +94,32 @@ class E2E(LightningModule):
         # else:
         #     x = x.log_softmax(2)
         # print('SHAPE:', x.shape)
+        return self.logsoftmax(x)
 
-        return self.softmax(x)
-        # return x.log_softmax(dim=1)
     
     def training_step(self, batch, batch_num):
         frames = batch['frames']
         labels = batch['label']
-        # print("TRUE LABELS: ", labels)
         output = self.forward(frames)
-        # loss = self.loss(output, labels.squeeze(1))
         loss = self.criterion(output, labels.squeeze(1))
-        # print("LOSS: ", loss)
-        loss = loss.mean()
-        acc = accuracy(output, labels)
-        # logs = {'train_loss': loss, 'train_acc': acc, 'loss':loss}
+        acc = accuracy(output, labels.squeeze(1))
         self.log("train_loss", loss, on_step=True, on_epoch=True, batch_size=self.hparams.batch_size, logger=True)
         self.log("train_acc", acc, on_step=True, on_epoch=True, batch_size=self.hparams.batch_size, logger=True)
-        # self.ema_handler.update(self.parameters())
-        # return {'loss': loss, 'acc': acc, 'log': logs}
-        return loss
+        self.sum_batches += loss
+        # return loss
+        return {"loss": loss, "train_loss_step": loss, "train_acc_step": acc}
 
     def validation_step(self, batch, batch_num):
         frames = batch['frames']
         labels = batch['label']
         words = batch['word']
         output = self.forward(frames)
-        # loss = self.loss(output, labels.squeeze(1))
         loss = self.criterion(output, labels.squeeze(1))
 
-        acc = accuracy(output, labels)
+        acc = accuracy(output, labels.squeeze(1))
         sums = torch.sum(output, dim=1)
         _, predicted = sums.max(dim=-1)
-        # self.log("val_loss", acc, on_step=False, on_epoch=True, batch_size=self.hparams.bach_size, logger=True)
+        self.log("val_loss", loss, on_step=False, on_epoch=True, batch_size=self.hparams.batch_size, logger=True)
         self.log("val_acc", acc, on_step=False, on_epoch=True, batch_size=self.hparams.batch_size, logger=True)
         return {
             'val_loss': loss,
@@ -134,39 +128,79 @@ class E2E(LightningModule):
             'labels': labels.squeeze(dim=1),
             'words': words,
         }
+    
 
-    def validation_end(self, outputs):
-        predictions = torch.cat([x['predictions'] for x in outputs]).cpu().numpy()
-        labels = torch.cat([x['labels'] for x in outputs]).cpu().numpy()
-        words = np.concatenate([x['words'] for x in outputs])
-        self.confusion_matrix(labels, predictions, words)
+    def test_step(self, batch, batch_idx):
+        frames = batch['frames']
+        labels = batch['label']
+        words = batch['word']
+        print(words)
+        output = self.forward(frames)
+        loss = self.criterion(output, labels.squeeze(1))
+        acc = accuracy(output, labels.squeeze(1))
+        print("LOSS TEST: ", loss)
+        print("ACCURACY TEST: ", acc)
+        self.log("test_loss", loss, on_step=False, on_epoch=True)
+        self.log("test_acc", acc, on_step=False, on_epoch=True)
+        return {"test_loss": loss, "test_acc": acc}
+    
 
-        avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
-        avg_acc = torch.stack([x['val_acc'] for x in outputs]).mean()
+    def training_epoch_end(self, outputs):
+        print("HERE: EPOCH LOSS: ", self.sum_batches/len(self.train_dataloader()))
+        self.sum_batches = 0.0
+        # print("here")
+        # avg_loss = torch.stack([x['train_loss_step'] for x in outputs]).mean()
+        # avg_acc = torch.stack([x['train_acc_step'] for x in outputs]).mean()
 
-        if self.best_val_acc < avg_acc:
-            self.best_val_acc = avg_acc
-        logs = {
-            'val_loss': avg_loss,
-            'val_acc': avg_acc,
-            'best_val_acc': self.best_val_acc
-        }
-        self.log("val_loss", avg_loss, on_step=False, on_epoch=True, batch_size=self.hparams.batch_size, logger=True)
-        self.log("val_acc", avg_acc, on_step=False, on_epoch=True, batch_size=self.hparams.batch_size, logger=True)
-        self.log("best_val_acc", self.best_val_acc, on_step=False, on_epoch=True, batch_size=self.hparams.batch_size, logger=True)
+        # if self.best_train_acc < avg_acc:
+        #     self.best_train_acc = avg_acc
+        # # logs = {
+        # #     'train_loss_epoch': avg_loss,
+        # #     'train_acc_epoch': avg_acc,
+        # #     'best_train_acc': self.best_val_acc
+        # # }
+        # self.log("train_loss_epoch", avg_loss, on_step=False, on_epoch=True, batch_size=self.hparams.batch_size, logger=True)
+        # self.log("train_acc_epoch", avg_acc, on_step=False, on_epoch=True, batch_size=self.hparams.batch_size, logger=True)
+        # self.log("best_train_acc", self.best_train_acc, on_step=False, on_epoch=True, batch_size=self.hparams.batch_size, logger=True)
 
 
-        self.epoch += 1
-        return {
-            'val_loss': avg_loss,
-            'val_acc': avg_acc,
-            'log': logs,
-        }
-        # return logs
-        # return avg_loss
+        # self.epoch += 1
+        # return {
+        #     'train_loss_epoch': avg_loss,
+        #     'train_acc_epoch': avg_acc,
+        #     'loss': avg_loss
+        # }
 
-    # def on_before_zero_grad(self):
-    #     self.ema.update(self.parameters())
+
+    def validation_epoch_end(self, outputs):
+        print("HERE IN VAL EPOCH END")
+        # predictions = torch.cat([x['predictions'] for x in outputs]).cpu().numpy()
+        # labels = torch.cat([x['labels'] for x in outputs]).cpu().numpy()
+        # words = np.concatenate([x['words'] for x in outputs])
+        # self.confusion_matrix(labels, predictions, words)
+
+        # avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
+        # avg_acc = torch.stack([x['val_acc'] for x in outputs]).mean()
+
+        # if self.best_val_acc < avg_acc:
+        #     self.best_val_acc = avg_acc
+        # logs = {
+        #     'val_loss': avg_loss,
+        #     'val_acc': avg_acc,
+        #     'best_val_acc': self.best_val_acc
+        # }
+        # self.log("val_loss", avg_loss, on_step=False, on_epoch=True, batch_size=self.hparams.batch_size, logger=True)
+        # self.log("val_acc", avg_acc, on_step=False, on_epoch=True, batch_size=self.hparams.batch_size, logger=True)
+        # self.log("best_val_acc", self.best_val_acc, on_step=False, on_epoch=True, batch_size=self.hparams.batch_size, logger=True)
+
+
+        # self.epoch += 1
+        # return {
+        #     'val_loss': avg_loss,
+        #     'val_acc': avg_acc,
+        #     'log': logs,
+        # }
+
 
     def confusion_matrix(self, label, prediction, words, normalize=True):
         classes = unique_labels(label, prediction)
@@ -238,7 +272,6 @@ class E2E(LightningModule):
             num_words=self.hparams.words,
             in_channels=self.in_channels,
             augmentations=self.augmentations,
-            # query=self.query,
             estimate_pose=False,
             seed=self.hparams.seed
         )
@@ -251,36 +284,46 @@ class E2E(LightningModule):
             num_words=self.hparams.words,
             in_channels=self.in_channels,
             mode='val',
-            # query=self.query,
             estimate_pose=False,
-
             seed=self.hparams.seed
         )
         val_loader = DataLoader(val_data, shuffle=False, batch_size=self.hparams.batch_size * 2, num_workers=self.hparams.workers)
         return val_loader
 
     def test_dataloader(self):
-        test_data = LRWDataset(
+        # test_data = LRWDataset(
+        #     path=self.hparams.data,
+        #     num_words=self.hparams.words,
+        #     in_channels=self.in_channels,
+        #     mode='test',
+        #     estimate_pose=False,
+        #     seed=self.hparams.seed
+        # )
+        # test_loader = DataLoader(test_data, shuffle=True, batch_size=self.hparams.batch_size * 2, num_workers=self.hparams.workers)
+        val_data = LRWDataset(
             path=self.hparams.data,
             num_words=self.hparams.words,
             in_channels=self.in_channels,
-            mode='test',
-            # query=self.query,
+            mode='val',
             estimate_pose=False,
-
             seed=self.hparams.seed
         )
-        test_loader = DataLoader(test_data, shuffle=False, batch_size=self.hparams.batch_size * 2, num_workers=self.hparams.workers)
-        return test_loader
+        val_loader = DataLoader(val_data, shuffle=False, batch_size=self.hparams.batch_size * 2, num_workers=self.hparams.workers)
+        # return test_loader
+        return val_loader
 
 
 
 def accuracy(predictions, labels):
+    # print("PREDICTIONS: ", predictions, predictions.shape)
     preds = torch.exp(predictions)
     preds_ = torch.argmax(preds, dim=1)
-    correct = (preds_ == labels.squeeze(dim=1)).sum().item()
-    total = labels.squeeze(dim=1).size(0)
-    accuracy = correct / preds_.shape[0]
+    print("preds_: ", preds_, preds_.shape)
+    print("LABELS: ", labels)
+    print("CORRECT: ",  preds_ == labels)
+    correct = (preds_ == labels).sum().item()
+    # print("CORRECT NUM: ", correct)
+    accuracy = correct / labels.shape[0]
     return accuracy
 
 
