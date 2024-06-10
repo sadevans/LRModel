@@ -134,20 +134,20 @@ class E2E(LightningModule):
         frames = batch['frames']
         labels = batch['label']
         words = batch['word']
-        print(words)
+        # print(words)
         output = self.forward(frames)
         loss = self.criterion(output, labels.squeeze(1))
         acc = accuracy(output, labels.squeeze(1))
-        print("LOSS TEST: ", loss)
-        print("ACCURACY TEST: ", acc)
+        # print("LOSS TEST: ", loss)
+        # print("ACCURACY TEST: ", acc)
         self.log("test_loss", loss, on_step=False, on_epoch=True)
         self.log("test_acc", acc, on_step=False, on_epoch=True)
         return {"test_loss": loss, "test_acc": acc}
     
 
-    def training_epoch_end(self, outputs):
-        print("HERE: EPOCH LOSS: ", self.sum_batches/len(self.train_dataloader()))
-        self.sum_batches = 0.0
+    # def training_epoch_end(self, outputs):
+    #     print("HERE: EPOCH LOSS: ", self.sum_batches/len(self.train_dataloader()))
+    #     self.sum_batches = 0.0
         # print("here")
         # avg_loss = torch.stack([x['train_loss_step'] for x in outputs]).mean()
         # avg_acc = torch.stack([x['train_acc_step'] for x in outputs]).mean()
@@ -172,8 +172,8 @@ class E2E(LightningModule):
         # }
 
 
-    def validation_epoch_end(self, outputs):
-        print("HERE IN VAL EPOCH END")
+    # def validation_epoch_end(self, outputs):
+    #     print("HERE IN VAL EPOCH END")
         # predictions = torch.cat([x['predictions'] for x in outputs]).cpu().numpy()
         # labels = torch.cat([x['labels'] for x in outputs]).cpu().numpy()
         # words = np.concatenate([x['words'] for x in outputs])
@@ -291,26 +291,26 @@ class E2E(LightningModule):
         return val_loader
 
     def test_dataloader(self):
-        # test_data = LRWDataset(
-        #     path=self.hparams.data,
-        #     num_words=self.hparams.words,
-        #     in_channels=self.in_channels,
-        #     mode='test',
-        #     estimate_pose=False,
-        #     seed=self.hparams.seed
-        # )
-        # test_loader = DataLoader(test_data, shuffle=True, batch_size=self.hparams.batch_size * 2, num_workers=self.hparams.workers)
-        val_data = LRWDataset(
+        test_data = LRWDataset(
             path=self.hparams.data,
             num_words=self.hparams.words,
             in_channels=self.in_channels,
-            mode='val',
+            mode='test',
             estimate_pose=False,
             seed=self.hparams.seed
         )
-        val_loader = DataLoader(val_data, shuffle=False, batch_size=self.hparams.batch_size * 2, num_workers=self.hparams.workers)
-        # return test_loader
-        return val_loader
+        test_loader = DataLoader(test_data, shuffle=False, batch_size=self.hparams.batch_size * 2, num_workers=self.hparams.workers)
+        # val_data = LRWDataset(
+        #     path=self.hparams.data,
+        #     num_words=self.hparams.words,
+        #     in_channels=self.in_channels,
+        #     mode='val',
+        #     estimate_pose=False,
+        #     seed=self.hparams.seed
+        # )
+        # val_loader = DataLoader(val_data, shuffle=False, batch_size=self.hparams.batch_size * 2, num_workers=self.hparams.workers)
+        return test_loader
+        # return val_loader
 
 
 
@@ -318,9 +318,9 @@ def accuracy(predictions, labels):
     # print("PREDICTIONS: ", predictions, predictions.shape)
     preds = torch.exp(predictions)
     preds_ = torch.argmax(preds, dim=1)
-    print("preds_: ", preds_, preds_.shape)
-    print("LABELS: ", labels)
-    print("CORRECT: ",  preds_ == labels)
+    # print("preds_: ", preds_, preds_.shape)
+    # print("LABELS: ", labels)
+    # print("CORRECT: ",  preds_ == labels)
     correct = (preds_ == labels).sum().item()
     # print("CORRECT NUM: ", correct)
     accuracy = correct / labels.shape[0]

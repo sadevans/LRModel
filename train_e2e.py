@@ -240,7 +240,7 @@ if __name__ == "__main__":
     #     continue
     
 
-    # model = Model(len(MyDataset.letters)+1)
+    # model = Model(len(MyDataset.characters)+1)
     model = E2E("/home/sadevans/space/personal/LRModel/config_ef.yaml", efficient_net_size="B")
     ##print(model)
     # optimizer = torch.optim.AdamW(params=model.parameters(), lr=1e-6, weight_decay=1e-5, betas=(0.9, 0.98))
@@ -258,8 +258,8 @@ if __name__ == "__main__":
     # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=2,threshold_mode='abs',min_lr=1e-10, verbose=True)
     scheduler = CosineAnnealingWarmRestarts(optimizer, T_0=5, eta_min=1e-8)
 
-    ##print('LEN LETTERS:', len(MyDataset.letters))
-    # blank=len(MyDataset.letters),
+    ##print('LEN LETTERS:', len(MyDataset.characters))
+    # blank=len(MyDataset.characters),
     loss_fn = nn.CTCLoss(zero_infinity=True, reduction='sum')
     # loss_fn = nn.CrossEntropyLoss()
     # loss_fn = CTCLossWithLengthPenalty(length_penalty_factor=0.5)

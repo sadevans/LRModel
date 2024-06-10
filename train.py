@@ -395,15 +395,15 @@ if __name__ == "__main__":
     #     # ##print(item)
     #     continue
 
-    model = Model(len(MyDataset.letters)+1)
+    model = Model(len(MyDataset.characters)+1)
     ##print(model)
     optimizer = Adam(params=model.parameters(), 
                  lr=1e-8,
                  amsgrad=True)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=2,threshold_mode='abs',min_lr=1e-8, verbose=True)
 
-    ##print('LEN LETTERS:', len(MyDataset.letters))
-    # blank=len(MyDataset.letters),
+    ##print('LEN LETTERS:', len(MyDataset.characters))
+    # blank=len(MyDataset.characters),
     loss_fn = nn.CTCLoss(zero_infinity=True, reduction='mean')
     # loss_fn = CTCLossWithLengthPenalty(length_penalty_factor=0.5)
     ##print(optimizer)

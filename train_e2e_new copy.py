@@ -96,7 +96,7 @@ def train(model, datamodule, optimizer, scheduler, loss_fn, epochs=1000, device=
         #     # print(pred_alignments_for_ctc.shape)
         #     # for label_sequence in pred_alignments[0].detach().cpu().numpy():
         #     #     for class_id in label_sequence:
-        #     #         assert  class_id > 0 and class_id < len(MyDataset.letters)+1
+        #     #         assert  class_id > 0 and class_id < len(MyDataset.characters)+1
 
         #     ####################
         #     # Check 3
@@ -251,8 +251,8 @@ if __name__ == "__main__":
     #     continue
     
 
-    # model = Model(len(MyDataset.letters)+1)
-    # model = E2E("/home/sadevans/space/LRModel/config_ef.yaml", num_classes=len(MyDataset.letters)+1, efficient_net_size="B")
+    # model = Model(len(MyDataset.characters)+1)
+    # model = E2E("/home/sadevans/space/LRModel/config_ef.yaml", num_classes=len(MyDataset.characters)+1, efficient_net_size="B")
     model = E2E("/home/sadevans/space/LRModel/config_ef.yaml", num_classes=500, efficient_net_size="B")
 
     model = model.to(device='cuda' if torch.cuda.is_available() else 'cpu')
@@ -278,8 +278,8 @@ if __name__ == "__main__":
     optimizer = torch.optim.AdamW([{"name": "model", "params": model.parameters(), "lr": 0.00002}], weight_decay=0.003, betas=(0.9, 0.98))
     scheduler = WarmupCosineScheduler(optimizer, 5, 75, len(datamodule.train_dataloader()))
     # scheduler = LambdaLR(optimizer, lr_lambda)
-    ##print('LEN LETTERS:', len(MyDataset.letters))
-    # blank=len(MyDataset.letters),
+    ##print('LEN LETTERS:', len(MyDataset.characters))
+    # blank=len(MyDataset.characters),
     # loss_fn = nn.CTCLoss(zero_infinity=True, reduction='sum')
     # loss_fn = nn.CTCLoss(reduction='mean', zero_infinity=True, blank=0).to(device)
     loss_fn = nn.CrossEntropyLoss().to(device)

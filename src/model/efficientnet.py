@@ -120,9 +120,9 @@ class Conv3DEfficientNetV2(nn.Module):
 
     def forward(self, x, show=False, debug=False):
         # print('SHAPE: ', x.shape)
-        # if (x.shape[1] != 1 or x.shape[1] != 3) and (x.shape[2] == 1 or x.shape[2] == 3):
-        #     x = x.permute(0, 2, 1, 3, 4)
-
+        if (x.shape[1] != 1 or x.shape[1] != 3) and (x.shape[2] == 1 or x.shape[2] == 3):
+            x = x.permute(0, 2, 1, 3, 4)
+        # print("INPUT SHAPE: ", x.shape)
         B, C, T, H, W = x.shape
         if debug: print("INPUT SHAPE: ", x.shape)
         x = self.conv3d(x)                                         # After efnet x shoud be size: Frames x Channels x H x W

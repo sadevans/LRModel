@@ -161,3 +161,7 @@ cython_debug/
 drafts/
 dataset_.py
 lightning_logs/
+ctcdecode/
+func.ipynb
+*.ipynb
+*.png

@@ -4,7 +4,7 @@ import torch
 
 from dataset import MyDataset
 
-from transforms import AudioTransform, VideoTransform
+from transforms import VideoTransform
 
 import numpy as np
 import glob
@@ -77,8 +77,7 @@ def ctc_collate(batch):
 
 class DataModule(pl.LightningDataModule):
     def __init__(self, modality, root_dir, train_file, val_file, test_file, label_dir='labels'):
-        # self.letters = [char for char in ' абвгдежзийклмнопрстуфхцчшщъыьэюя']
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.characters = [char for char in ' абвгдежзийклмнопрстуфхцчшщъыьэюя']
         self.modality = modality
         self.root_dir = root_dir
         self.train_file = train_file
@@ -139,31 +138,6 @@ class DataModule(pl.LightningDataModule):
         return test_dataloader
 
 
-class LipreadingDataModule(pl.LightningDataModule):
-    def __init__(self, modality, root, train_dataset, val_dataset, test_dataset, batch_size=32, num_workers=4):
-        super().__init__()
-        datamodule = DataModule(
-        modality, 
-        root,
-        train_dataset, 
-        val_dataset, 
-        test_dataset
-    )
-        self.train_dataset = train_dataset
-        self.val_dataset = val_dataset
-        self.test_dataset = test_dataset
-        self.batch_size = batch_size
-        self.num_workers = num_workers
-
-    def train_dataloader(self):
-        return datamodule.train_dataloader()  # pin_memory for faster GPU transfer
-
-    def val_dataloader(self):
-        return datamodule.val_dataloader()
-
-    def test_dataloader(self):
-        return datamodule.test_dataloader()
-
 
 if __name__ == "__main__":
 
@@ -175,6 +149,4 @@ if __name__ == "__main__":
         "/media/sadevans/T7 Shield/PERSONAL/Diplom/datasets/Vmeste/for_/labels/Vmeste_val_transcript_lengths_seg24s_0to100_5000units.csv"
     )
 
-    loader = datamodule.train_dataloader()
-    # for (i_iter, input) in enumerate(loader):
-    #     #print(input)
+

@@ -12,10 +12,12 @@ import cv2
 
 
 class MyDataset:
-    # letters = [' ', 'а', 'б', 'в', 'г', 'д', 'е', 'ж', 'з', 'и', 'й', 'к', 'л', 'м', 'н', 'о', 'п', 'р', 'с', 'т', \
+    # characters = [' ', 'а', 'б', 'в', 'г', 'д', 'е', 'ж', 'з', 'и', 'й', 'к', 'л', 'м', 'н', 'о', 'п', 'р', 'с', 'т', \
     #            'у', 'ф', 'ц', 'х', 'ш', 'ц', 'ч', 'ш', 'щ', 'ъ', 'ы', 'ь', 'э', 'ю', 'я']
-    # letters = [char for char in ' абвгдежзийклмнопрстуфхцчшщъыьэюя']
-    letters = [char for char in ' абвгдежзийклмнопрстуфхцчшщъыьэюя']
+    # characters = [char for char in ' абвгдежзийклмнопрстуфхцчшщъыьэюя']
+    # characters = [char for char in ' абвгдежзийклмнопрстуфхцчшщъыьэюя']
+    characters = [char for char in ' абвгдежзийклмнопрстуфхцчшщъыьэюя']
+    
     def __init__(self, root_dir,label_path,subset,modality,audio_transform=None,
                  video_transform=None,rate_ratio=640,):
         self.root = root_dir
@@ -157,7 +159,7 @@ class MyDataset:
     def txt2arr(txt, start):
         arr = []
         for c in list(txt):
-            arr.append(MyDataset.letters.index(c) + start)
+            arr.append(MyDataset.characters.index(c) + start)
         return np.array(arr)
         
     @staticmethod
@@ -169,7 +171,7 @@ class MyDataset:
         # ##print(arr)
         for n in arr:
             if(n >= start):
-                txt.append(MyDataset.letters[n - start])     
+                txt.append(MyDataset.characters[n - start])     
         return ''.join(txt).strip()
     
     @staticmethod
@@ -180,10 +182,10 @@ class MyDataset:
         # ##print(arr)
         for n in arr:
             if(pre != n and n >= start):                
-                if(len(txt) > 0 and txt[-1] == ' ' and MyDataset.letters[n - start] == ' '):
+                if(len(txt) > 0 and txt[-1] == ' ' and MyDataset.characters[n - start] == ' '):
                     pass
                 else:
-                    txt.append(MyDataset.letters[n - start])                
+                    txt.append(MyDataset.characters[n - start])                
             pre = n
         return ''.join(txt).strip()
     
