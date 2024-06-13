@@ -1,0 +1,11 @@
+defaults:
+  - _self_
+root_dir:  "/media/sadevans/T7 Shield/PERSONAL/Diplom/datasets/LRW/lipread_mp4"
+num_words: 10
+# label_dir: "labels"
+# train_file: "mtedx_ru_train_transcript_lengths_seg24s.csv"
+# val_file: "mtedx_ru_valid_transcript_lengths_seg24s.csv"
+# test_file: "mtedx_ru_valid_transcript_lengths_seg24s.csv"
+# train_file: "Vmeste_train_transcript_lengths_seg24s_0to100_5000units.csv"
+# val_file: "Vmeste_valid_transcript_lengths_seg24s_0to100_5000units.csv"
+# test_file: "Vmeste_valid_transcript_lengths_seg24s_0to100_5000units.csv"

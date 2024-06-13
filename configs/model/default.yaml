@@ -1,8 +1,6 @@
 frontend-3d:
   # [in, out, kernel, loss type, max pool]
   - [1, 24, [3, 5, 5], 'relu', False]
-  # - [1, 24, [5, 7, 7], 'relu', True]
-
 
 
 efficient-net-blocks:
